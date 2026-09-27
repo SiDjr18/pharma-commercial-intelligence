@@ -1,0 +1,1145 @@
+/// All measures. Definitions: ANALYTICS_METHODS.md, sql/metrics.sql, docs/OPPORTUNITY_SCORING.md, docs/SCENARIO_ENGINE.md.
+table 'Metrics'
+
+	/// Selected anchor month (single selection). Default: latest data month. Several selected: BLANK (never silently picked).
+	measure 'Anchor Month' =
+			VAR n = COUNTROWS ( VALUES ( 'Anchor'[Anchor Month] ) )
+			RETURN
+			    SWITCH ( TRUE (),
+			        n = 1, SELECTEDVALUE ( 'Anchor'[Anchor Month] ),
+			        NOT ISFILTERED ( 'Anchor' ), CALCULATE ( MAX ( 'Anchor'[Anchor Month] ), REMOVEFILTERS ( 'Anchor' ) ),
+			        BLANK () )
+		formatString: mmm yyyy
+		displayFolder: 0 Period
+
+	/// MONTH | YTD (calendar, Jan..anchor) | MAT (12 months ending at anchor). Default MAT, as in the application.
+	measure 'Basis Selected' =
+			VAR n = COUNTROWS ( VALUES ( 'Basis'[Basis] ) )
+			RETURN
+			    SWITCH ( TRUE (),
+			        n = 1, SELECTEDVALUE ( 'Basis'[Basis] ),
+			        NOT ISFILTERED ( 'Basis' ), "MAT",
+			        BLANK () )
+		displayFolder: 0 Period
+
+	measure 'Basis Label' =
+			SWITCH ( [Basis Selected], "MONTH", "Month", "YTD", "Calendar YTD", "MAT", "MAT (moving annual total)" )
+		displayFolder: 0 Period
+
+	measure 'First Data Month' =
+			CALCULATE ( MIN ( 'Period'[Period] ), REMOVEFILTERS ( 'Period' ) )
+		formatString: mmm yyyy
+		displayFolder: 0 Period
+
+	measure 'Last Data Month' =
+			CALCULATE ( MAX ( 'Period'[Period] ), REMOVEFILTERS ( 'Period' ) )
+		formatString: mmm yyyy
+		displayFolder: 0 Period
+
+	measure 'Current Start' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			RETURN
+			    IF ( NOT ISBLANK ( a ),
+			        SWITCH ( b, "MONTH", a, "YTD", DATE ( YEAR ( a ), 1, 1 ), "MAT", EDATE ( a, -11 ) ) )
+		formatString: mmm yyyy
+		displayFolder: 0 Period
+
+	measure 'Current End' =
+			IF ( NOT ISBLANK ( [Current Start] ), [Anchor Month] )
+		formatString: mmm yyyy
+		displayFolder: 0 Period
+
+	measure 'Prior Start' =
+			VAR s = [Current Start] RETURN IF ( NOT ISBLANK ( s ), EDATE ( s, -12 ) )
+		formatString: mmm yyyy
+		displayFolder: 0 Period
+
+	measure 'Prior End' =
+			VAR e = [Current End] RETURN IF ( NOT ISBLANK ( e ), EDATE ( e, -12 ) )
+		formatString: mmm yyyy
+		displayFolder: 0 Period
+
+	/// Window complete only if every month exists (periods.sql current_complete).
+	measure 'Current Complete' =
+			VAR s = [Current Start] RETURN NOT ISBLANK ( s ) && s >= [First Data Month]
+		displayFolder: 0 Period
+
+	measure 'Prior Complete' =
+			VAR s = [Prior Start] RETURN NOT ISBLANK ( s ) && s >= [First Data Month]
+		displayFolder: 0 Period
+
+	measure 'Window Months' =
+			IF ( [Current Complete], DATEDIFF ( [Current Start], [Current End], MONTH ) + 1 )
+		formatString: 0
+		displayFolder: 0 Period
+
+	measure 'Period Caption' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			RETURN
+			    SWITCH ( TRUE (),
+			        ISBLANK ( a ) || ISBLANK ( b ), "Select one anchor month and one basis",
+			        NOT [Current Complete], [Basis Label] & " ending " & FORMAT ( a, "mmm yyyy" ) & " starts before the first data month (" & FORMAT ( [First Data Month], "mmm yyyy" ) & "): no values",
+			        [Basis Label] & " · " & FORMAT ( [Current Start], "mmm yyyy" ) & " – " & FORMAT ( [Current End], "mmm yyyy" )
+			            & IF ( [Prior Complete],
+			                " vs " & FORMAT ( [Prior Start], "mmm yyyy" ) & " – " & FORMAT ( [Prior End], "mmm yyyy" ),
+			                " · comparison window predates the data: growth not available" ) )
+		displayFolder: 0 Period
+
+	/// Value, Rs crore, current window (confirmed unit).
+	measure 'Value' =
+			VAR s = [Current Start]
+			VAR e = [Current End]
+			RETURN
+			    IF ( [Current Complete],
+			        CALCULATE ( SUM ( 'Pack Month'[value_cr] ), REMOVEFILTERS ( 'Period' ), 'Period'[Period] >= s, 'Period'[Period] <= e ) )
+		formatString: #,0.00
+		displayFolder: 1 Core
+
+	/// Same window shifted back 12 months; BLANK when it predates the data.
+	measure 'Value Prior' =
+			VAR s = [Prior Start]
+			VAR e = [Prior End]
+			RETURN
+			    IF ( [Current Complete] && [Prior Complete],
+			        CALCULATE ( SUM ( 'Pack Month'[value_cr] ), REMOVEFILTERS ( 'Period' ), 'Period'[Period] >= s, 'Period'[Period] <= e ) )
+		formatString: #,0.00
+		displayFolder: 1 Core
+
+	measure 'Value Change' =
+			VAR c = [Value] VAR p = [Value Prior] RETURN IF ( NOT ISBLANK ( c ) && NOT ISBLANK ( p ), c - p )
+		formatString: #,0.00
+		displayFolder: 1 Core
+
+	/// cur / prior x 100 - 100 when prior > 0; otherwise BLANK (never 0).
+	measure 'Value Growth %' =
+			VAR c = [Value]
+			VAR p = [Value Prior]
+			RETURN IF ( p > 0, c / p * 100 - 100 )
+		formatString: +0.0\%;-0.0\%;0.0\%
+		displayFolder: 1 Core
+
+	measure 'Growth Status' =
+			VAR c = [Value]
+			VAR p = [Value Prior]
+			RETURN
+			    IF ( NOT ISBLANK ( c ),
+			        SWITCH ( TRUE (),
+			            ISBLANK ( p ), "prior_unavailable",
+			            p = 0 && c = 0, "no_sales",
+			            p = 0, "prior_zero",
+			            "ok" ) )
+		displayFolder: 1 Core
+
+	measure 'Growth Evidence' =
+			SWITCH ( [Growth Status],
+			    "ok", "Measured",
+			    "prior_zero", "n/a: no prior-period sales",
+			    "no_sales", "n/a: no sales in either window",
+			    "prior_unavailable", "n/a: comparison window predates the data" )
+		displayFolder: 1 Core
+
+	/// '000 packs (inferred scale).
+	measure 'Units' =
+			VAR s = [Current Start]
+			VAR e = [Current End]
+			RETURN
+			    IF ( [Current Complete],
+			        CALCULATE ( SUM ( 'Pack Month'[units_k] ), REMOVEFILTERS ( 'Period' ), 'Period'[Period] >= s, 'Period'[Period] <= e ) )
+		formatString: #,0.0
+		displayFolder: 1 Core
+
+	measure 'Units Prior' =
+			VAR s = [Prior Start]
+			VAR e = [Prior End]
+			RETURN
+			    IF ( [Current Complete] && [Prior Complete],
+			        CALCULATE ( SUM ( 'Pack Month'[units_k] ), REMOVEFILTERS ( 'Period' ), 'Period'[Period] >= s, 'Period'[Period] <= e ) )
+		formatString: #,0.0
+		displayFolder: 1 Core
+
+	measure 'Units Change' =
+			VAR c = [Units] VAR p = [Units Prior] RETURN IF ( NOT ISBLANK ( c ) && NOT ISBLANK ( p ), c - p )
+		formatString: #,0.0
+		displayFolder: 1 Core
+
+	measure 'Units Growth %' =
+			VAR c = [Units]
+			VAR p = [Units Prior]
+			RETURN IF ( p > 0, c / p * 100 - 100 )
+		formatString: +0.0\%;-0.0\%;0.0\%
+		displayFolder: 1 Core
+
+	/// '000 counting units (inferred scale).
+	measure 'Qty' =
+			VAR s = [Current Start]
+			VAR e = [Current End]
+			RETURN
+			    IF ( [Current Complete],
+			        CALCULATE ( SUM ( 'Pack Month'[qty_k] ), REMOVEFILTERS ( 'Period' ), 'Period'[Period] >= s, 'Period'[Period] <= e ) )
+		formatString: #,0.0
+		displayFolder: 1 Core
+
+	measure 'Qty Prior' =
+			VAR s = [Prior Start]
+			VAR e = [Prior End]
+			RETURN
+			    IF ( [Current Complete] && [Prior Complete],
+			        CALCULATE ( SUM ( 'Pack Month'[qty_k] ), REMOVEFILTERS ( 'Period' ), 'Period'[Period] >= s, 'Period'[Period] <= e ) )
+		formatString: #,0.0
+		displayFolder: 1 Core
+
+	measure 'Qty Growth %' =
+			VAR c = [Qty]
+			VAR p = [Qty Prior]
+			RETURN IF ( p > 0, c / p * 100 - 100 )
+		formatString: +0.0\%;-0.0\%;0.0\%
+		displayFolder: 1 Core
+
+	measure 'Packs' =
+			IF ( NOT ISBLANK ( [Value] ), COUNTROWS ( 'Pack' ) )
+		formatString: #,0
+		displayFolder: 1 Core
+
+	measure 'Scope Market Value' =
+			CALCULATE ( [Value], REMOVEFILTERS ( 'Product' ), REMOVEFILTERS ( 'Company' ) )
+		formatString: #,0.00
+		displayFolder: 2 Share & contribution (market scope)
+		isHidden
+
+	measure 'Scope Market Value Prior' =
+			CALCULATE ( [Value Prior], REMOVEFILTERS ( 'Product' ), REMOVEFILTERS ( 'Company' ) )
+		formatString: #,0.00
+		displayFolder: 2 Share & contribution (market scope)
+		isHidden
+
+	measure 'Scope Market Units' =
+			CALCULATE ( [Units], REMOVEFILTERS ( 'Product' ), REMOVEFILTERS ( 'Company' ) )
+		formatString: #,0.0
+		displayFolder: 2 Share & contribution (market scope)
+		isHidden
+
+	measure 'Scope National Value' =
+			CALCULATE ( [Value], REMOVEFILTERS ( 'Pack' ), REMOVEFILTERS ( 'Product' ), REMOVEFILTERS ( 'Company' ), REMOVEFILTERS ( 'Market' ) )
+		formatString: #,0.00
+		displayFolder: 3 Share & contribution (national)
+		isHidden
+
+	measure 'Scope National Value Prior' =
+			CALCULATE ( [Value Prior], REMOVEFILTERS ( 'Pack' ), REMOVEFILTERS ( 'Product' ), REMOVEFILTERS ( 'Company' ), REMOVEFILTERS ( 'Market' ) )
+		formatString: #,0.00
+		displayFolder: 3 Share & contribution (national)
+		isHidden
+
+	measure 'Scope National Units' =
+			CALCULATE ( [Units], REMOVEFILTERS ( 'Pack' ), REMOVEFILTERS ( 'Product' ), REMOVEFILTERS ( 'Company' ), REMOVEFILTERS ( 'Market' ) )
+		formatString: #,0.0
+		displayFolder: 3 Share & contribution (national)
+		isHidden
+
+	measure 'Scope Therapy Area Value' =
+			IF ( HASONEVALUE ( 'Market'[Supergroup] ),
+			    CALCULATE ( [Value], REMOVEFILTERS ( 'Market' ), VALUES ( 'Market'[Supergroup] ) ) )
+		formatString: #,0.00
+		displayFolder: 3 Share & contribution (national)
+		isHidden
+
+	measure 'Scope Therapy Area Value Prior' =
+			IF ( HASONEVALUE ( 'Market'[Supergroup] ),
+			    CALCULATE ( [Value Prior], REMOVEFILTERS ( 'Market' ), VALUES ( 'Market'[Supergroup] ) ) )
+		formatString: #,0.00
+		displayFolder: 3 Share & contribution (national)
+		isHidden
+
+	/// Scope total: current filters minus Product and Company (the market the entity is measured in).
+	measure 'Market Value' =
+			IF ( NOT ISBLANK ( [Value] ), [Scope Market Value] )
+		formatString: #,0.00
+		displayFolder: 2 Share & contribution (market scope)
+
+	measure 'Market Value Prior' =
+			IF ( NOT ISBLANK ( [Value] ), [Scope Market Value Prior] )
+		formatString: #,0.00
+		displayFolder: 2 Share & contribution (market scope)
+
+	measure 'Market Units' =
+			IF ( NOT ISBLANK ( [Value] ), [Scope Market Units] )
+		formatString: #,0.0
+		displayFolder: 2 Share & contribution (market scope)
+
+	measure 'Market Growth %' =
+			IF ( NOT ISBLANK ( [Value] ), VAR c = [Scope Market Value] VAR p = [Scope Market Value Prior] RETURN IF ( p > 0, c / p * 100 - 100 ) )
+		formatString: +0.0\%;-0.0\%;0.0\%
+		displayFolder: 2 Share & contribution (market scope)
+
+	measure 'Share of Market %' =
+			VAR c = [Value] VAR m = [Scope Market Value] RETURN IF ( NOT ISBLANK ( c ) && m > 0, c / m * 100 )
+		formatString: 0.00\%
+		displayFolder: 2 Share & contribution (market scope)
+
+	measure 'Share of Market Prior %' =
+			VAR p = [Value Prior] VAR m = [Scope Market Value Prior] RETURN IF ( NOT ISBLANK ( p ) && m > 0, p / m * 100 )
+		formatString: 0.00\%
+		displayFolder: 2 Share & contribution (market scope)
+
+	measure 'Share Change pp' =
+			VAR c = [Value]
+			VAR p = [Value Prior]
+			VAR m = [Scope Market Value]
+			VAR mp = [Scope Market Value Prior]
+			RETURN IF ( NOT ISBLANK ( c ) && NOT ISBLANK ( p ) && m > 0 && mp > 0, c / m * 100 - p / mp * 100 )
+		formatString: +0.00 pp;-0.00 pp;0.00 pp
+		displayFolder: 2 Share & contribution (market scope)
+
+	measure 'Units Share of Market %' =
+			VAR u = [Units] VAR m = [Scope Market Units] RETURN IF ( NOT ISBLANK ( u ) && m > 0, u / m * 100 )
+		formatString: 0.00\%
+		displayFolder: 2 Share & contribution (market scope)
+
+	/// (cur - prior) / scope prior x 100; sums to scope growth.
+	measure 'Contribution to Market Growth pp' =
+			VAR c = [Value]
+			VAR p = [Value Prior]
+			VAR mp = [Scope Market Value Prior]
+			RETURN IF ( NOT ISBLANK ( c ) && NOT ISBLANK ( p ) && mp > 0, ( c - p ) / mp * 100 )
+		formatString: +0.00 pp;-0.00 pp;0.00 pp
+		displayFolder: 2 Share & contribution (market scope)
+
+	/// share_cur / share_prior x 100 = 100 x (1 + g_entity) / (1 + g_market). 100 = kept pace with its market.
+	measure 'Evolution Index' =
+			VAR c = [Value]
+			VAR p = [Value Prior]
+			VAR m = [Scope Market Value]
+			VAR mp = [Scope Market Value Prior]
+			RETURN IF ( p > 0 && m > 0 && mp > 0, ( c / m ) / ( p / mp ) * 100 )
+		formatString: 0.0
+		displayFolder: 2 Share & contribution (market scope)
+
+	measure 'National Value' =
+			IF ( NOT ISBLANK ( [Value] ), [Scope National Value] )
+		formatString: #,0.00
+		displayFolder: 3 Share & contribution (national)
+
+	measure 'National Value Prior' =
+			IF ( NOT ISBLANK ( [Value] ), [Scope National Value Prior] )
+		formatString: #,0.00
+		displayFolder: 3 Share & contribution (national)
+
+	measure 'National Units' =
+			IF ( NOT ISBLANK ( [Value] ), [Scope National Units] )
+		formatString: #,0.0
+		displayFolder: 3 Share & contribution (national)
+
+	measure 'National Growth %' =
+			VAR c = [Scope National Value] VAR p = [Scope National Value Prior] RETURN IF ( p > 0, c / p * 100 - 100 )
+		formatString: +0.0\%;-0.0\%;0.0\%
+		displayFolder: 3 Share & contribution (national)
+
+	measure 'Share of Total %' =
+			VAR c = [Value] VAR m = [Scope National Value] RETURN IF ( NOT ISBLANK ( c ) && m > 0, c / m * 100 )
+		formatString: 0.00\%
+		displayFolder: 3 Share & contribution (national)
+
+	measure 'Share of Total Prior %' =
+			VAR p = [Value Prior] VAR m = [Scope National Value Prior] RETURN IF ( NOT ISBLANK ( p ) && m > 0, p / m * 100 )
+		formatString: 0.00\%
+		displayFolder: 3 Share & contribution (national)
+
+	measure 'Share of Total Change pp' =
+			VAR c = [Value]
+			VAR p = [Value Prior]
+			VAR m = [Scope National Value]
+			VAR mp = [Scope National Value Prior]
+			RETURN IF ( NOT ISBLANK ( c ) && NOT ISBLANK ( p ) && m > 0 && mp > 0, c / m * 100 - p / mp * 100 )
+		formatString: +0.00 pp;-0.00 pp;0.00 pp
+		displayFolder: 3 Share & contribution (national)
+
+	measure 'Units Share of Total %' =
+			VAR u = [Units] VAR m = [Scope National Units] RETURN IF ( NOT ISBLANK ( u ) && m > 0, u / m * 100 )
+		formatString: 0.00\%
+		displayFolder: 3 Share & contribution (national)
+
+	measure 'Contribution to Total Growth pp' =
+			VAR c = [Value]
+			VAR p = [Value Prior]
+			VAR mp = [Scope National Value Prior]
+			RETURN IF ( NOT ISBLANK ( c ) && NOT ISBLANK ( p ) && mp > 0, ( c - p ) / mp * 100 )
+		formatString: +0.00 pp;-0.00 pp;0.00 pp
+		displayFolder: 3 Share & contribution (national)
+
+	measure 'Evolution Index vs Total' =
+			VAR c = [Value]
+			VAR p = [Value Prior]
+			VAR m = [Scope National Value]
+			VAR mp = [Scope National Value Prior]
+			RETURN IF ( p > 0 && m > 0 && mp > 0, ( c / m ) / ( p / mp ) * 100 )
+		formatString: 0.0
+		displayFolder: 3 Share & contribution (national)
+
+	/// Value of the (single) supergroup in context: denominator for subgroup share within its therapy area.
+	measure 'Therapy Area Value' =
+			IF ( NOT ISBLANK ( [Value] ), [Scope Therapy Area Value] )
+		formatString: #,0.00
+		displayFolder: 3 Share & contribution (national)
+
+	measure 'Therapy Area Value Prior' =
+			IF ( NOT ISBLANK ( [Value] ), [Scope Therapy Area Value Prior] )
+		formatString: #,0.00
+		displayFolder: 3 Share & contribution (national)
+
+	measure 'Share of Therapy Area %' =
+			VAR c = [Value] VAR m = [Scope Therapy Area Value] RETURN IF ( NOT ISBLANK ( c ) && m > 0, c / m * 100 )
+		formatString: 0.00\%
+		displayFolder: 3 Share & contribution (national)
+
+	measure 'Contribution to Therapy Area Growth pp' =
+			VAR c = [Value]
+			VAR p = [Value Prior]
+			VAR mp = [Scope Therapy Area Value Prior]
+			RETURN IF ( NOT ISBLANK ( c ) && NOT ISBLANK ( p ) && mp > 0, ( c - p ) / mp * 100 )
+		formatString: +0.00 pp;-0.00 pp;0.00 pp
+		displayFolder: 3 Share & contribution (national)
+
+	/// Value for the selected basis ending at the axis month.
+	measure 'Trend Value' =
+			VAR a = EDATE ( MAX ( 'Period'[Period] ), -0 )
+			VAR b = [Basis Selected]
+			VAR s = SWITCH ( b, "MONTH", a, "YTD", DATE ( YEAR ( a ), 1, 1 ), "MAT", EDATE ( a, -11 ) )
+			VAR first = [First Data Month]
+			RETURN
+			    IF ( HASONEVALUE ( 'Period'[Period] ) && NOT ISBLANK ( s ) && s >= first,
+			        CALCULATE ( SUM ( 'Pack Month'[value_cr] ), REMOVEFILTERS ( 'Period' ), 'Period'[Period] >= s, 'Period'[Period] <= a ) )
+		formatString: #,0.00
+		displayFolder: 4 Trend
+
+	/// Same basis, window ending 12 months earlier.
+	measure 'Trend Value Prior Year' =
+			VAR a = EDATE ( MAX ( 'Period'[Period] ), -12 )
+			VAR b = [Basis Selected]
+			VAR s = SWITCH ( b, "MONTH", a, "YTD", DATE ( YEAR ( a ), 1, 1 ), "MAT", EDATE ( a, -11 ) )
+			VAR first = [First Data Month]
+			RETURN
+			    IF ( HASONEVALUE ( 'Period'[Period] ) && NOT ISBLANK ( s ) && s >= first,
+			        CALCULATE ( SUM ( 'Pack Month'[value_cr] ), REMOVEFILTERS ( 'Period' ), 'Period'[Period] >= s, 'Period'[Period] <= a ) )
+		formatString: #,0.00
+		displayFolder: 4 Trend
+
+	measure 'Trend Growth %' =
+			VAR c = [Trend Value]
+			VAR p = [Trend Value Prior Year]
+			RETURN IF ( p > 0, c / p * 100 - 100 )
+		formatString: +0.0\%;-0.0\%;0.0\%
+		displayFolder: 4 Trend
+
+	measure 'Trend Units' =
+			VAR a = EDATE ( MAX ( 'Period'[Period] ), -0 )
+			VAR b = [Basis Selected]
+			VAR s = SWITCH ( b, "MONTH", a, "YTD", DATE ( YEAR ( a ), 1, 1 ), "MAT", EDATE ( a, -11 ) )
+			VAR first = [First Data Month]
+			RETURN
+			    IF ( HASONEVALUE ( 'Period'[Period] ) && NOT ISBLANK ( s ) && s >= first,
+			        CALCULATE ( SUM ( 'Pack Month'[units_k] ), REMOVEFILTERS ( 'Period' ), 'Period'[Period] >= s, 'Period'[Period] <= a ) )
+		formatString: #,0.0
+		displayFolder: 4 Trend
+
+	measure 'Trend Units Prior Year' =
+			VAR a = EDATE ( MAX ( 'Period'[Period] ), -12 )
+			VAR b = [Basis Selected]
+			VAR s = SWITCH ( b, "MONTH", a, "YTD", DATE ( YEAR ( a ), 1, 1 ), "MAT", EDATE ( a, -11 ) )
+			VAR first = [First Data Month]
+			RETURN
+			    IF ( HASONEVALUE ( 'Period'[Period] ) && NOT ISBLANK ( s ) && s >= first,
+			        CALCULATE ( SUM ( 'Pack Month'[units_k] ), REMOVEFILTERS ( 'Period' ), 'Period'[Period] >= s, 'Period'[Period] <= a ) )
+		formatString: #,0.0
+		displayFolder: 4 Trend
+
+	measure 'Rank Key Value' =
+			VAR v = [Value] RETURN IF ( NOT ISBLANK ( v ), ROUND ( v, 9 ) )
+		displayFolder: 5 Rank
+		isHidden
+
+	measure 'Rank Key Growth' =
+			VAR c = [Value] VAR p = [Value Prior] RETURN IF ( p > 0, ROUND ( c / p, 9 ) )
+		displayFolder: 5 Rank
+		isHidden
+
+	measure 'Rank Value (Product)' =
+			IF ( NOT ISBLANK ( [Value] ) && ( ISINSCOPE ( 'Product'[Product Code] ) || ISINSCOPE ( 'Product'[Product] ) ),
+			    RANK ( SKIP, ALLSELECTED ( 'Product' ),
+			        ORDERBY ( [Rank Key Value], DESC, 'Product'[Product Code], ASC ), LAST, , MATCHBY ( 'Product'[Product Code] ) ) )
+		formatString: 0
+		displayFolder: 5 Rank
+
+	measure 'Rank Growth (Product)' =
+			IF ( NOT ISBLANK ( [Value] ) && ( ISINSCOPE ( 'Product'[Product Code] ) || ISINSCOPE ( 'Product'[Product] ) ),
+			    RANK ( SKIP, ALLSELECTED ( 'Product' ),
+			        ORDERBY ( [Rank Key Growth], DESC, [Rank Key Value], DESC, 'Product'[Product Code], ASC ), LAST, , MATCHBY ( 'Product'[Product Code] ) ) )
+		formatString: 0
+		displayFolder: 5 Rank
+
+	measure 'Rank Value (Company)' =
+			IF ( NOT ISBLANK ( [Value] ) && ( ISINSCOPE ( 'Company'[Company] ) ),
+			    RANK ( SKIP, ALLSELECTED ( 'Company' ),
+			        ORDERBY ( [Rank Key Value], DESC, 'Company'[Company Order], ASC ), LAST, , MATCHBY ( 'Company'[Company] ) ) )
+		formatString: 0
+		displayFolder: 5 Rank
+
+	measure 'Rank Growth (Company)' =
+			IF ( NOT ISBLANK ( [Value] ) && ( ISINSCOPE ( 'Company'[Company] ) ),
+			    RANK ( SKIP, ALLSELECTED ( 'Company' ),
+			        ORDERBY ( [Rank Key Growth], DESC, [Rank Key Value], DESC, 'Company'[Company Order], ASC ), LAST, , MATCHBY ( 'Company'[Company] ) ) )
+		formatString: 0
+		displayFolder: 5 Rank
+
+	measure 'Rank Value (Subgroup)' =
+			IF ( NOT ISBLANK ( [Value] ) && ( ISINSCOPE ( 'Market'[Subgroup] ) ),
+			    RANK ( SKIP, ALLSELECTED ( 'Market' ),
+			        ORDERBY ( [Rank Key Value], DESC, 'Market'[Subgroup Order], ASC ), LAST, , MATCHBY ( 'Market'[Subgroup] ) ) )
+		formatString: 0
+		displayFolder: 5 Rank
+
+	measure 'Rank Growth (Subgroup)' =
+			IF ( NOT ISBLANK ( [Value] ) && ( ISINSCOPE ( 'Market'[Subgroup] ) ),
+			    RANK ( SKIP, ALLSELECTED ( 'Market' ),
+			        ORDERBY ( [Rank Key Growth], DESC, [Rank Key Value], DESC, 'Market'[Subgroup Order], ASC ), LAST, , MATCHBY ( 'Market'[Subgroup] ) ) )
+		formatString: 0
+		displayFolder: 5 Rank
+
+	measure 'Rank Value (Supergroup)' =
+			IF ( NOT ISBLANK ( [Value] ) && ( ISINSCOPE ( 'Market'[Supergroup] ) ),
+			    RANK ( SKIP, ALLSELECTED ( 'Market'[Supergroup], 'Market'[Supergroup Order] ),
+			        ORDERBY ( [Rank Key Value], DESC, 'Market'[Supergroup Order], ASC ), LAST, , MATCHBY ( 'Market'[Supergroup] ) ) )
+		formatString: 0
+		displayFolder: 5 Rank
+
+	measure 'Rank Growth (Supergroup)' =
+			IF ( NOT ISBLANK ( [Value] ) && ( ISINSCOPE ( 'Market'[Supergroup] ) ),
+			    RANK ( SKIP, ALLSELECTED ( 'Market'[Supergroup], 'Market'[Supergroup Order] ),
+			        ORDERBY ( [Rank Key Growth], DESC, [Rank Key Value], DESC, 'Market'[Supergroup Order], ASC ), LAST, , MATCHBY ( 'Market'[Supergroup] ) ) )
+		formatString: 0
+		displayFolder: 5 Rank
+
+	measure 'Rank Value (Therapy Group)' =
+			IF ( NOT ISBLANK ( [Value] ) && ( ISINSCOPE ( 'Market'[Therapy Group] ) ),
+			    RANK ( SKIP, ALLSELECTED ( 'Market'[Therapy Group], 'Market'[Therapy Group Order] ),
+			        ORDERBY ( [Rank Key Value], DESC, 'Market'[Therapy Group Order], ASC ), LAST, , MATCHBY ( 'Market'[Therapy Group] ) ) )
+		formatString: 0
+		displayFolder: 5 Rank
+
+	measure 'Rank Growth (Therapy Group)' =
+			IF ( NOT ISBLANK ( [Value] ) && ( ISINSCOPE ( 'Market'[Therapy Group] ) ),
+			    RANK ( SKIP, ALLSELECTED ( 'Market'[Therapy Group], 'Market'[Therapy Group Order] ),
+			        ORDERBY ( [Rank Key Growth], DESC, [Rank Key Value], DESC, 'Market'[Therapy Group Order], ASC ), LAST, , MATCHBY ( 'Market'[Therapy Group] ) ) )
+		formatString: 0
+		displayFolder: 5 Rank
+
+	measure 'Rank Value (Molecule)' =
+			IF ( NOT ISBLANK ( [Value] ) && ( ISINSCOPE ( 'Pack'[Molecule] ) ),
+			    RANK ( SKIP, ALLSELECTED ( 'Pack'[Molecule], 'Pack'[Molecule Order] ),
+			        ORDERBY ( [Rank Key Value], DESC, 'Pack'[Molecule Order], ASC ), LAST, , MATCHBY ( 'Pack'[Molecule] ) ) )
+		formatString: 0
+		displayFolder: 5 Rank
+
+	measure 'Rank Growth (Molecule)' =
+			IF ( NOT ISBLANK ( [Value] ) && ( ISINSCOPE ( 'Pack'[Molecule] ) ),
+			    RANK ( SKIP, ALLSELECTED ( 'Pack'[Molecule], 'Pack'[Molecule Order] ),
+			        ORDERBY ( [Rank Key Growth], DESC, [Rank Key Value], DESC, 'Pack'[Molecule Order], ASC ), LAST, , MATCHBY ( 'Pack'[Molecule] ) ) )
+		formatString: 0
+		displayFolder: 5 Rank
+
+	measure 'Subgroup Gain (Top 10)' =
+			IF ( ISINSCOPE ( 'Market'[Subgroup] ),
+			    VAR x = [Value Change]
+			    VAR r = RANK ( SKIP, ALLSELECTED ( 'Market'[Subgroup] ), ORDERBY ( [Value Change], DESC, 'Market'[Subgroup], ASC ), LAST )
+			    RETURN IF ( r <= 10 && x > 0, x ) )
+		formatString: #,0.00
+		displayFolder: 6 Display
+
+	measure 'Subgroup Decline (Top 10)' =
+			IF ( ISINSCOPE ( 'Market'[Subgroup] ),
+			    VAR x = [Value Change]
+			    VAR r = RANK ( SKIP, ALLSELECTED ( 'Market'[Subgroup] ), ORDERBY ( [Value Change], ASC, 'Market'[Subgroup], ASC ), LAST )
+			    RETURN IF ( r <= 10 && x < 0, x ) )
+		formatString: #,0.00
+		displayFolder: 6 Display
+
+	measure 'Subgroup Contribution (Top 12)' =
+			IF ( ISINSCOPE ( 'Market'[Subgroup] ),
+			    VAR x = [Contribution to Total Growth pp]
+			    VAR r = RANK ( SKIP, ALLSELECTED ( 'Market'[Subgroup] ), ORDERBY ( ABS ( [Contribution to Total Growth pp] ), DESC, 'Market'[Subgroup], ASC ), LAST )
+			    RETURN IF ( r <= 12, x ) )
+		formatString: +0.00 pp;-0.00 pp;0.00 pp
+		displayFolder: 6 Display
+
+	measure 'Company Share Mover (Top 8 each way)' =
+			IF ( ISINSCOPE ( 'Company'[Company] ),
+			    VAR x = [Share Change pp]
+			    VAR up = RANK ( SKIP, ALLSELECTED ( 'Company'[Company] ), ORDERBY ( [Share Change pp], DESC, 'Company'[Company], ASC ), LAST )
+			    VAR dn = RANK ( SKIP, ALLSELECTED ( 'Company'[Company] ), ORDERBY ( [Share Change pp], ASC, 'Company'[Company], ASC ), LAST )
+			    RETURN IF ( ( up <= 8 && x > 0 ) || ( dn <= 8 && x < 0 ), x ) )
+		formatString: +0.00 pp;-0.00 pp;0.00 pp
+		displayFolder: 6 Display
+
+	measure 'Product Value (Top 15)' =
+			VAR r = [Rank Value (Product)] RETURN IF ( r <= 15, [Value] )
+		formatString: #,0.00
+		displayFolder: 6 Display
+
+	measure 'Subgroup Value (Top 15)' =
+			VAR r = [Rank Value (Subgroup)] RETURN IF ( r <= 15, [Value] )
+		formatString: #,0.00
+		displayFolder: 6 Display
+
+	measure 'Growth Color' =
+			VAR x = [Value Growth %]
+			RETURN SWITCH ( TRUE (), ISBLANK ( x ), "#8f98a4", x > 0, "#1b6f45", x < 0, "#ad3a2c", "#384657" )
+		displayFolder: 6 Display
+		isHidden
+
+	measure 'Value Change Color' =
+			VAR x = [Value Change]
+			RETURN SWITCH ( TRUE (), ISBLANK ( x ), "#8f98a4", x > 0, "#1b6f45", x < 0, "#ad3a2c", "#384657" )
+		displayFolder: 6 Display
+		isHidden
+
+	measure 'Share Change Color' =
+			VAR x = [Share Change pp]
+			RETURN SWITCH ( TRUE (), ISBLANK ( x ), "#8f98a4", x > 0, "#1b6f45", x < 0, "#ad3a2c", "#384657" )
+		displayFolder: 6 Display
+		isHidden
+
+	measure 'Total Share Change Color' =
+			VAR x = [Share of Total Change pp]
+			RETURN SWITCH ( TRUE (), ISBLANK ( x ), "#8f98a4", x > 0, "#1b6f45", x < 0, "#ad3a2c", "#384657" )
+		displayFolder: 6 Display
+		isHidden
+
+	measure 'Contribution Color' =
+			VAR x = [Contribution to Total Growth pp]
+			RETURN SWITCH ( TRUE (), ISBLANK ( x ), "#8f98a4", x > 0, "#1b6f45", x < 0, "#ad3a2c", "#384657" )
+		displayFolder: 6 Display
+		isHidden
+
+	measure 'Market Contribution Color' =
+			VAR x = [Contribution to Market Growth pp]
+			RETURN SWITCH ( TRUE (), ISBLANK ( x ), "#8f98a4", x > 0, "#1b6f45", x < 0, "#ad3a2c", "#384657" )
+		displayFolder: 6 Display
+		isHidden
+
+	measure 'Subgroup Contribution Color' =
+			VAR x = [Subgroup Contribution (Top 12)]
+			RETURN SWITCH ( TRUE (), ISBLANK ( x ), "#8f98a4", x > 0, "#1b6f45", x < 0, "#ad3a2c", "#384657" )
+		displayFolder: 6 Display
+		isHidden
+
+	measure 'Company Mover Color' =
+			VAR x = [Company Share Mover (Top 8 each way)]
+			RETURN SWITCH ( TRUE (), ISBLANK ( x ), "#8f98a4", x > 0, "#1b6f45", x < 0, "#ad3a2c", "#384657" )
+		displayFolder: 6 Display
+		isHidden
+
+	measure 'Evolution Color' =
+			VAR x = [Evolution Index]
+			RETURN SWITCH ( TRUE (), ISBLANK ( x ), "#8f98a4", x >= 100, "#1b6f45", "#ad3a2c" )
+		displayFolder: 6 Display
+		isHidden
+
+	measure 'Selected Product Label' =
+			IF ( HASONEVALUE ( 'Product'[Product Code] ), SELECTEDVALUE ( 'Product'[Product] ), "Select one product (brand names are not unique; identity = product code)" )
+		displayFolder: 6 Display
+
+	measure 'Selected Company Label' =
+			IF ( HASONEVALUE ( 'Company'[Company] ), SELECTEDVALUE ( 'Company'[Company] ), "Select one company" )
+		displayFolder: 6 Display
+
+	measure 'Products (count)' =
+			CALCULATE ( DISTINCTCOUNT ( 'Pack'[prod_code] ) )
+		formatString: #,0
+		displayFolder: 6 Display
+
+	measure 'Companies (count)' =
+			CALCULATE ( DISTINCTCOUNT ( 'Pack'[company] ) )
+		formatString: #,0
+		displayFolder: 6 Display
+
+	measure 'Subgroups (count)' =
+			CALCULATE ( DISTINCTCOUNT ( 'Pack'[subgroup] ) )
+		formatString: #,0
+		displayFolder: 6 Display
+
+	measure 'Packs (all)' =
+			COUNTROWS ( 'Pack' )
+		formatString: #,0
+		displayFolder: 6 Display
+
+	measure 'Opportunity Availability' =
+			VAR b = [Basis Selected]
+			VAR a = [Anchor Month]
+			VAR n = CALCULATE ( COUNTROWS ( 'Opportunity Market' ), 'Opportunity Market'[Anchor] = a, 'Opportunity Market'[Basis] = b, REMOVEFILTERS ( 'Market' ) )
+			RETURN
+			    SWITCH ( TRUE (),
+			        ISBLANK ( a ) || ISBLANK ( b ), "Select one anchor month and one basis",
+			        NOT ( b IN { "MAT", "YTD" } ), "Opportunity scoring uses MAT or calendar YTD only; MONTH is excluded as too noisy (OPP-1.0.0).",
+			        n = 0, "Insufficient history: the comparison window predates the data, so every entity is INSUFFICIENT_EVIDENCE (insufficient_history).",
+			        "DESCRIPTIVE OPPORTUNITY SCORING (OPP-1.0.0) — relative percentile evidence within scored entities nationally. Not a forecast, probability or guarantee." )
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Market Opportunity Score' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			VAR t = CALCULATETABLE ( 'Opportunity Market', 'Opportunity Market'[Anchor] = a, 'Opportunity Market'[Basis] = b )
+			RETURN IF ( COUNTROWS ( t ) = 1, MAXX ( t, 'Opportunity Market'[Score] ) )
+		formatString: 0.0
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Market Opportunity Rank' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			VAR t = CALCULATETABLE ( 'Opportunity Market', 'Opportunity Market'[Anchor] = a, 'Opportunity Market'[Basis] = b )
+			RETURN IF ( COUNTROWS ( t ) = 1, MAXX ( t, 'Opportunity Market'[Opportunity Rank] ) )
+		formatString: 0
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Market Evidence' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			VAR t = CALCULATETABLE ( 'Opportunity Market', 'Opportunity Market'[Anchor] = a, 'Opportunity Market'[Basis] = b )
+			VAR v = IF ( COUNTROWS ( t ) = 1, CONCATENATEX ( t, 'Opportunity Market'[Evidence] ) )
+			RETURN IF ( v <> "", v )
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	/// Raw component: subgroup value growth (validated metric).
+	measure 'Market Opp Growth %' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			VAR t = CALCULATETABLE ( 'Opportunity Market', 'Opportunity Market'[Anchor] = a, 'Opportunity Market'[Basis] = b )
+			RETURN IF ( COUNTROWS ( t ) = 1, MAXX ( t, 'Opportunity Market'[Market Growth %] ) )
+		formatString: +0.0\%;-0.0\%;0.0\%
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Market Opp Size Share %' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			VAR t = CALCULATETABLE ( 'Opportunity Market', 'Opportunity Market'[Anchor] = a, 'Opportunity Market'[Basis] = b )
+			RETURN IF ( COUNTROWS ( t ) = 1, MAXX ( t, 'Opportunity Market'[Market Size Share %] ) )
+		formatString: 0.00\%
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Market Growth Percentile' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			VAR t = CALCULATETABLE ( 'Opportunity Market', 'Opportunity Market'[Anchor] = a, 'Opportunity Market'[Basis] = b )
+			RETURN IF ( COUNTROWS ( t ) = 1, MAXX ( t, 'Opportunity Market'[Growth Normalized] ) )
+		formatString: 0.000
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Market Size Percentile' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			VAR t = CALCULATETABLE ( 'Opportunity Market', 'Opportunity Market'[Anchor] = a, 'Opportunity Market'[Basis] = b )
+			RETURN IF ( COUNTROWS ( t ) = 1, MAXX ( t, 'Opportunity Market'[Size Normalized] ) )
+		formatString: 0.000
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Product Opportunity Score' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			VAR t = CALCULATETABLE ( 'Opportunity Product', 'Opportunity Product'[Anchor] = a, 'Opportunity Product'[Basis] = b )
+			RETURN IF ( COUNTROWS ( t ) = 1, MAXX ( t, 'Opportunity Product'[Score] ) )
+		formatString: 0.0
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Product Opportunity Rank' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			VAR t = CALCULATETABLE ( 'Opportunity Product', 'Opportunity Product'[Anchor] = a, 'Opportunity Product'[Basis] = b )
+			RETURN IF ( COUNTROWS ( t ) = 1, MAXX ( t, 'Opportunity Product'[Opportunity Rank] ) )
+		formatString: 0
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Product Evidence' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			VAR t = CALCULATETABLE ( 'Opportunity Product', 'Opportunity Product'[Anchor] = a, 'Opportunity Product'[Basis] = b )
+			VAR v = IF ( COUNTROWS ( t ) = 1, CONCATENATEX ( t, 'Opportunity Product'[Evidence] ) )
+			RETURN IF ( v <> "", v )
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Product Opp Market Growth %' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			VAR t = CALCULATETABLE ( 'Opportunity Product', 'Opportunity Product'[Anchor] = a, 'Opportunity Product'[Basis] = b )
+			RETURN IF ( COUNTROWS ( t ) = 1, MAXX ( t, 'Opportunity Product'[Market Growth %] ) )
+		formatString: +0.0\%;-0.0\%;0.0\%
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Product Opp Evolution Index' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			VAR t = CALCULATETABLE ( 'Opportunity Product', 'Opportunity Product'[Anchor] = a, 'Opportunity Product'[Basis] = b )
+			RETURN IF ( COUNTROWS ( t ) = 1, MAXX ( t, 'Opportunity Product'[Evolution Index] ) )
+		formatString: 0.0
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Product Opp Share in Market %' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			VAR t = CALCULATETABLE ( 'Opportunity Product', 'Opportunity Product'[Anchor] = a, 'Opportunity Product'[Basis] = b )
+			RETURN IF ( COUNTROWS ( t ) = 1, MAXX ( t, 'Opportunity Product'[Share in Market %] ) )
+		formatString: 0.00\%
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Product Opp Quadrant' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			VAR t = CALCULATETABLE ( 'Opportunity Product', 'Opportunity Product'[Anchor] = a, 'Opportunity Product'[Basis] = b )
+			VAR v = IF ( COUNTROWS ( t ) = 1, CONCATENATEX ( t, 'Opportunity Product'[Matrix Quadrant] ) )
+			RETURN IF ( v <> "", v )
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	/// Normalized component (mid-rank percentile, 0..1).
+	measure 'Momentum Percentile' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			VAR t = CALCULATETABLE ( 'Opportunity Product', 'Opportunity Product'[Anchor] = a, 'Opportunity Product'[Basis] = b )
+			RETURN IF ( COUNTROWS ( t ) = 1, MAXX ( t, 'Opportunity Product'[Momentum Normalized] ) )
+		formatString: 0.000
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Market Growth Percentile (Product)' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			VAR t = CALCULATETABLE ( 'Opportunity Product', 'Opportunity Product'[Anchor] = a, 'Opportunity Product'[Basis] = b )
+			RETURN IF ( COUNTROWS ( t ) = 1, MAXX ( t, 'Opportunity Product'[Market Growth Normalized] ) )
+		formatString: 0.000
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Products in Population' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			RETURN CALCULATE ( COUNTROWS ( 'Opportunity Product' ), 'Opportunity Product'[Anchor] = a, 'Opportunity Product'[Basis] = b )
+		formatString: #,0
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Scored Products' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			RETURN CALCULATE ( COUNTROWS ( 'Opportunity Product' ), 'Opportunity Product'[Anchor] = a, 'Opportunity Product'[Basis] = b, 'Opportunity Product'[Score Status] = "SCORED" )
+		formatString: #,0
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Insufficient-Evidence Products' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			RETURN CALCULATE ( COUNTROWS ( 'Opportunity Product' ), 'Opportunity Product'[Anchor] = a, 'Opportunity Product'[Basis] = b, 'Opportunity Product'[Score Status] = "INSUFFICIENT_EVIDENCE" )
+		formatString: #,0
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Markets Scored' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			RETURN CALCULATE ( COUNTROWS ( 'Opportunity Market' ), 'Opportunity Market'[Anchor] = a, 'Opportunity Market'[Basis] = b, 'Opportunity Market'[Score Status] = "SCORED" )
+		formatString: #,0
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Scored Products Gaining Share' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			RETURN CALCULATE ( COUNTROWS ( 'Opportunity Product' ), 'Opportunity Product'[Anchor] = a, 'Opportunity Product'[Basis] = b, 'Opportunity Product'[Score Status] = "SCORED", 'Opportunity Product'[Evolution Index] >= 100 )
+		formatString: #,0
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Top Opportunity Market' =
+			VAR a = [Anchor Month]
+			VAR b = [Basis Selected]
+			RETURN CALCULATE ( SELECTEDVALUE ( 'Opportunity Market'[Subgroup] ), 'Opportunity Market'[Anchor] = a, 'Opportunity Market'[Basis] = b, 'Opportunity Market'[Opportunity Rank] = 1, REMOVEFILTERS ( 'Market' ) )
+		displayFolder: 7 Opportunity (M6, canonical export)
+
+	measure 'Scenario Type Selected' =
+			IF ( HASONEVALUE ( 'Scenario Type'[Scenario Type] ), VALUES ( 'Scenario Type'[Scenario Type] ) )
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Price Change Assumption' =
+			IF ( HASONEVALUE ( 'Price Change'[Price Change %] ), VALUES ( 'Price Change'[Price Change %] ) )
+		formatString: +0.0\%;-0.0\%;0.0\%
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Volume Change Assumption' =
+			IF ( HASONEVALUE ( 'Volume Change'[Volume Change %] ), VALUES ( 'Volume Change'[Volume Change %] ) )
+		formatString: +0.0\%;-0.0\%;0.0\%
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Market Growth Assumption' =
+			IF ( HASONEVALUE ( 'Market Growth Assumption'[Market Growth %] ), VALUES ( 'Market Growth Assumption'[Market Growth %] ) )
+		formatString: +0.0\%;-0.0\%;0.0\%
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Target Share Assumption' =
+			IF ( HASONEVALUE ( 'Target Share'[Target Share %] ), VALUES ( 'Target Share'[Target Share %] ) )
+		formatString: 0.00\%
+		displayFolder: 8 Scenario (M7 formulas)
+
+	/// The most specific market filter defines the market (subgroup filters combined with their own supergroup/group are consistent). Molecule is a separate lens and cannot be combined.
+	measure 'Scenario Market Level' =
+			VAR f1 = ISFILTERED ( 'Market'[Supergroup] )
+			VAR f2 = ISFILTERED ( 'Market'[Therapy Group] )
+			VAR f3 = ISFILTERED ( 'Market'[Subgroup] )
+			VAR f4 = ISFILTERED ( 'Pack'[Molecule] )
+			RETURN
+			    SWITCH ( TRUE (),
+			        f4 && ( f1 || f2 || f3 ), "invalid",
+			        f4, "molecule",
+			        f3, "subgroup",
+			        f1 && f2, "invalid",
+			        f2, "therapy_group",
+			        f1, "supergroup",
+			        "total" )
+		displayFolder: 8 Scenario (M7 formulas)
+		isHidden
+
+	measure 'Scenario Market Key' =
+			SWITCH ( [Scenario Market Level],
+			    "total", "TOTAL",
+			    "subgroup", SELECTEDVALUE ( 'Market'[Subgroup] ),
+			    "therapy_group", SELECTEDVALUE ( 'Market'[Therapy Group] ),
+			    "supergroup", SELECTEDVALUE ( 'Market'[Supergroup] ),
+			    "molecule", SELECTEDVALUE ( 'Pack'[Molecule] ) )
+		displayFolder: 8 Scenario (M7 formulas)
+		isHidden
+
+	measure 'Scenario Entity Type' =
+			VAR np = IF ( ISFILTERED ( 'Product' ), COUNTROWS ( VALUES ( 'Product'[Product Code] ) ), 0 )
+			VAR nc = IF ( ISFILTERED ( 'Company' ), COUNTROWS ( VALUES ( 'Company'[Company] ) ), 0 )
+			RETURN
+			    SWITCH ( TRUE (),
+			        np > 1, "invalid:select exactly one product",
+			        np = 1, "product",
+			        nc > 1, "invalid:select exactly one company",
+			        nc = 1, "company",
+			        [Scenario Market Level] )
+		displayFolder: 8 Scenario (M7 formulas)
+		isHidden
+
+	measure 'Scenario Status' =
+			VAR st = [Scenario Type Selected]
+			VAR et = [Scenario Entity Type]
+			VAR ml = [Scenario Market Level]
+			VAR seg = ISFILTERED ( 'Market'[Acute/Chronic] ) || ISFILTERED ( 'Company'[Indian/MNC] ) || ISFILTERED ( 'Pack'[Plain/Combination] ) || ISFILTERED ( 'Pack'[Molecule Count] ) || ISFILTERED ( 'Pack'[Dosage Form] ) || ISFILTERED ( 'Pack'[Form (NFC1)] )
+			VAR isEntity = et IN { "product", "company" }
+			VAR usesPrice = st IN { "PRICE_CHANGE", "PRICE_VOLUME_CHANGE" }
+			VAR usesVolume = st IN { "VOLUME_CHANGE", "PRICE_VOLUME_CHANGE" }
+			VAR pSel = ISFILTERED ( 'Price Change' )
+			VAR vSel = ISFILTERED ( 'Volume Change' )
+			VAR gSel = ISFILTERED ( 'Market Growth Assumption' )
+			VAR tSel = ISFILTERED ( 'Target Share' )
+			RETURN
+			    SWITCH ( TRUE (),
+			        ISBLANK ( st ), "SELECT: choose one scenario type",
+			        ISBLANK ( [Anchor Month] ) || ISBLANK ( [Basis Selected] ), "SELECT: choose one anchor month and one basis",
+			        NOT [Current Complete], "PERIOD UNAVAILABLE: the window starts before the first data month",
+			        LEFT ( et, 8 ) = "invalid:", "SELECT: " & MID ( et, 9, 200 ),
+			        ml = "invalid", "SELECT: use one market level (molecule cannot be combined; therapy group and supergroup together are not a defined market)",
+			        ml <> "total" && ISBLANK ( [Scenario Market Key] ), "SELECT: choose exactly one market",
+			        seg, "SELECT: remove segment filters; a scenario entity is one product, company or market",
+			        st = "MARKET_GROWTH" && isEntity, "INVALID PARAMETER: MARKET_GROWTH applies to market entities (total, supergroup, therapy group, subgroup, molecule)",
+			        st = "MARKET_SHARE" && NOT isEntity, "INVALID PARAMETER: MARKET_SHARE applies to one product or company within a market",
+			        NOT usesPrice && pSel, "INVALID ASSUMPTION: price_change_pct is not an assumption of " & st & " (clear it)",
+			        NOT usesVolume && vSel, "INVALID ASSUMPTION: volume_change_pct is not an assumption of " & st & " (clear it)",
+			        NOT ( st IN { "MARKET_GROWTH", "MARKET_SHARE" } ) && gSel, "INVALID ASSUMPTION: market_growth_pct is not an assumption of " & st & " (clear it)",
+			        st <> "MARKET_SHARE" && tSel, "INVALID ASSUMPTION: target_share_pct is not an assumption of " & st & " (clear it)",
+			        usesPrice && ISBLANK ( [Price Change Assumption] ), "SELECT: choose one price change % (allowed > -100 and <= 1000)",
+			        usesVolume && ISBLANK ( [Volume Change Assumption] ), "SELECT: choose one volume change % (allowed -100 to 1000)",
+			        st = "MARKET_GROWTH" && ISBLANK ( [Market Growth Assumption] ), "SELECT: choose one market growth % (allowed -100 to 1000)",
+			        st = "MARKET_SHARE" && ISBLANK ( [Target Share Assumption] ), "SELECT: choose one target share % (allowed 0 to 100)",
+			        st = "MARKET_SHARE" && gSel && ISBLANK ( [Market Growth Assumption] ), "SELECT: choose one market growth % or clear it (default 0)",
+			        ISBLANK ( [Value] ), "NOT FOUND: the entity has no packs in the selected market",
+			        ( usesPrice || usesVolume ) && NOT ( [Units] > 0 ), "INSUFFICIENT BASELINE: baseline units are 0 in this window, so price is undefined",
+			        st = "MARKET_GROWTH" && NOT ( [Value] > 0 ), "INSUFFICIENT BASELINE: baseline market value is 0",
+			        st = "MARKET_SHARE" && NOT ( [Market Value] > 0 ), "INSUFFICIENT BASELINE: baseline market value is 0; share is undefined",
+			        "OK" )
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Scenario OK' =
+			[Scenario Status] = "OK"
+		displayFolder: 8 Scenario (M7 formulas)
+		isHidden
+
+	measure 'Scenario Entity' =
+			VAR et = [Scenario Entity Type]
+			VAR ml = [Scenario Market Level]
+			VAR mk = [Scenario Market Key]
+			VAR mlabel = IF ( ml = "total", "total market", SUBSTITUTE ( ml, "_", " " ) & " " & mk )
+			RETURN
+			    SWITCH ( et,
+			        "product", "Product " & SELECTEDVALUE ( 'Product'[Product] ) & " within " & mlabel,
+			        "company", "Company " & SELECTEDVALUE ( 'Company'[Company] ) & " within " & mlabel,
+			        "total", "Total market",
+			        "supergroup", "Market: " & mlabel, "therapy_group", "Market: " & mlabel,
+			        "subgroup", "Market: " & mlabel, "molecule", "Market: " & mlabel,
+			        "No single entity selected" )
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Scenario Price Pct Effective' =
+			SWITCH ( [Scenario Type Selected], "PRICE_CHANGE", [Price Change Assumption], "PRICE_VOLUME_CHANGE", [Price Change Assumption], 0 )
+		displayFolder: 8 Scenario (M7 formulas)
+		isHidden
+
+	measure 'Scenario Volume Pct Effective' =
+			SWITCH ( [Scenario Type Selected], "VOLUME_CHANGE", [Volume Change Assumption], "PRICE_VOLUME_CHANGE", [Volume Change Assumption], 0 )
+		displayFolder: 8 Scenario (M7 formulas)
+		isHidden
+
+	measure 'Scenario Growth Pct Effective' =
+			IF ( ISFILTERED ( 'Market Growth Assumption' ), [Market Growth Assumption], 0 )
+		displayFolder: 8 Scenario (M7 formulas)
+		isHidden
+
+	measure 'Baseline Value (OBSERVED)' =
+			IF ( [Scenario OK], [Value] )
+		formatString: #,0.00
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Baseline Units (OBSERVED)' =
+			IF ( [Scenario OK], [Units] )
+		formatString: #,0.0
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Baseline Qty (OBSERVED)' =
+			IF ( [Scenario OK], [Qty] )
+		formatString: #,0.0
+		displayFolder: 8 Scenario (M7 formulas)
+
+	/// Rs per pack = value_cr x 10^7 / (units_k x 10^3) = 1e4 x value_cr / units_k (equals source PR).
+	measure 'Baseline Price per Pack (OBSERVED)' =
+			VAR v = [Value]
+			VAR u = [Units]
+			RETURN IF ( [Scenario OK] && u > 0, v * 10000000 / ( u * 1000 ) )
+		formatString: #,0.00
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Baseline Market Value (OBSERVED)' =
+			IF ( [Scenario OK] && [Scenario Type Selected] = "MARKET_SHARE", [Market Value] )
+		formatString: #,0.00
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Baseline Share (OBSERVED)' =
+			IF ( [Scenario OK] && [Scenario Type Selected] = "MARKET_SHARE", [Share of Market %] )
+		formatString: 0.00\%
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Scenario Price per Pack (CALCULATED)' =
+			VAR p0 = [Baseline Price per Pack (OBSERVED)]
+			RETURN IF ( NOT ISBLANK ( p0 ) && [Scenario Type Selected] IN { "PRICE_CHANGE", "VOLUME_CHANGE", "PRICE_VOLUME_CHANGE" },
+			    p0 * ( 1 + [Scenario Price Pct Effective] / 100 ) )
+		formatString: #,0.00
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Scenario Units (CALCULATED)' =
+			IF ( [Scenario OK] && [Scenario Type Selected] IN { "PRICE_CHANGE", "VOLUME_CHANGE", "PRICE_VOLUME_CHANGE" },
+			    [Units] * ( 1 + [Scenario Volume Pct Effective] / 100 ) )
+		formatString: #,0.0
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Scenario Qty (CALCULATED)' =
+			IF ( [Scenario OK] && [Scenario Type Selected] IN { "PRICE_CHANGE", "VOLUME_CHANGE", "PRICE_VOLUME_CHANGE" },
+			    [Qty] * ( 1 + [Scenario Volume Pct Effective] / 100 ) )
+		formatString: #,0.0
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Scenario Market Value (CALCULATED)' =
+			IF ( [Scenario OK] && [Scenario Type Selected] = "MARKET_SHARE",
+			    [Market Value] * ( 1 + [Scenario Growth Pct Effective] / 100 ) )
+		formatString: #,0.00
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Scenario Value (CALCULATED)' =
+			VAR st = [Scenario Type Selected]
+			RETURN
+			    IF ( [Scenario OK],
+			        SWITCH ( st,
+			            "MARKET_GROWTH", [Value] * ( 1 + [Market Growth Assumption] / 100 ),
+			            "MARKET_SHARE", [Target Share Assumption] / 100 * [Scenario Market Value (CALCULATED)],
+			            [Scenario Price per Pack (CALCULATED)] * [Scenario Units (CALCULATED)] * 1000 / 10000000 ) )
+		formatString: #,0.00
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Scenario Value Change (CALCULATED)' =
+			IF ( [Scenario OK], [Scenario Value (CALCULATED)] - [Value] )
+		formatString: #,0.00
+		displayFolder: 8 Scenario (M7 formulas)
+
+	/// Undefined (BLANK) when the baseline is 0.
+	measure 'Scenario Value Change % (CALCULATED)' =
+			VAR v0 = [Value]
+			RETURN IF ( [Scenario OK] && v0 <> 0, ( [Scenario Value (CALCULATED)] - v0 ) / v0 * 100 )
+		formatString: +0.0\%;-0.0\%;0.0\%
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Scenario Units Change % (CALCULATED)' =
+			VAR u0 = [Units]
+			VAR u1 = [Scenario Units (CALCULATED)]
+			RETURN IF ( NOT ISBLANK ( u1 ) && u0 <> 0, ( u1 - u0 ) / u0 * 100 )
+		formatString: +0.0\%;-0.0\%;0.0\%
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Scenario Price Change % (CALCULATED)' =
+			VAR p0 = [Baseline Price per Pack (OBSERVED)]
+			VAR p1 = [Scenario Price per Pack (CALCULATED)]
+			RETURN IF ( NOT ISBLANK ( p1 ) && p0 <> 0, ( p1 - p0 ) / p0 * 100 )
+		formatString: +0.0\%;-0.0\%;0.0\%
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Price Effect (CALCULATED)' =
+			IF ( [Scenario OK] && [Scenario Type Selected] IN { "PRICE_CHANGE", "VOLUME_CHANGE", "PRICE_VOLUME_CHANGE" },
+			    [Value] * ( [Scenario Price Pct Effective] / 100 ) )
+		formatString: #,0.00
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Volume Effect (CALCULATED)' =
+			IF ( [Scenario OK] && [Scenario Type Selected] IN { "PRICE_CHANGE", "VOLUME_CHANGE", "PRICE_VOLUME_CHANGE" },
+			    [Value] * ( [Scenario Volume Pct Effective] / 100 ) )
+		formatString: #,0.00
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Price x Volume Interaction (CALCULATED)' =
+			IF ( [Scenario OK] && [Scenario Type Selected] IN { "PRICE_CHANGE", "VOLUME_CHANGE", "PRICE_VOLUME_CHANGE" },
+			    [Value] * ( [Scenario Price Pct Effective] / 100 ) * ( [Scenario Volume Pct Effective] / 100 ) )
+		formatString: #,0.00
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Scenario Market Value Change % (CALCULATED)' =
+			VAR m0 = [Market Value]
+			VAR m1 = [Scenario Market Value (CALCULATED)]
+			RETURN IF ( NOT ISBLANK ( m1 ) && m0 <> 0, ( m1 - m0 ) / m0 * 100 )
+		formatString: +0.0\%;-0.0\%;0.0\%
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Scenario Share Change pp (CALCULATED)' =
+			IF ( [Scenario OK] && [Scenario Type Selected] = "MARKET_SHARE",
+			    [Target Share Assumption] - [Share of Market %] )
+		formatString: +0.00 pp;-0.00 pp;0.00 pp
+		displayFolder: 8 Scenario (M7 formulas)
+
+	measure 'Scenario Formula' =
+			SWITCH ( [Scenario Type Selected],
+			    "PRICE_CHANGE", "price_1 = price_0 x (1 + price_change_pct/100); units_1 = units_0 (no elasticity); value_1 [Rs crore] = price_1 [Rs/pack] x units_1 ['000 packs] x 10^3 / 10^7",
+			    "VOLUME_CHANGE", "units_1 = units_0 x (1 + volume_change_pct/100); qty_1 = qty_0 x (1 + volume_change_pct/100); price_1 = price_0; value_1 = price_1 x units_1 x 10^3 / 10^7",
+			    "PRICE_VOLUME_CHANGE", "price_1 = price_0 x (1 + p); units_1 = units_0 x (1 + v); value_1 = value_0 x (1 + p)(1 + v); price effect = value_0 x p, volume effect = value_0 x v, interaction = value_0 x p x v",
+			    "MARKET_GROWTH", "value_1 = value_0 x (1 + market_growth_pct/100); units, qty and price are not modelled",
+			    "MARKET_SHARE", "market_1 = market_0 x (1 + market_growth_pct/100); value_1 = target_share_pct/100 x market_1; share moves to/from the rest of the market",
+			    "Select a scenario type" )
+		displayFolder: 8 Scenario (M7 formulas)
+
+	column 'Placeholder'
+		dataType: int64
+		isHidden
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Placeholder]
+
+	partition 'Metrics' = calculated
+		mode: import
+		source =
+				ROW ( "Placeholder", 0 )
+

@@ -1,0 +1,15 @@
+/// Allowed grid for volume_change_pct: [-100, 1000], step 1.
+table 'Volume Change'
+
+	column 'Volume Change %'
+		dataType: double
+		formatString: +0.0\%;-0.0\%;0.0\%
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Volume Change %]
+
+	partition 'Volume Change' = calculated
+		mode: import
+		source =
+				SELECTCOLUMNS ( GENERATESERIES ( -100, 1000, 1 ), "Volume Change %", [Value] * 1.0 )
+

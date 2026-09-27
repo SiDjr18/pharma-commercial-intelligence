@@ -1,0 +1,199 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.4.0/schema.json",
+  "name": "sc_dec",
+  "position": {
+    "x": 384,
+    "y": 500,
+    "z": 22000,
+    "width": 880,
+    "height": 192,
+    "tabOrder": 22000
+  },
+  "visual": {
+    "visualType": "multiRowCard",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Price Effect (CALCULATED)"
+                }
+              },
+              "queryRef": "Metrics.Price Effect (CALCULATED)",
+              "nativeQueryRef": "Price Effect (CALCULATED)",
+              "displayName": "Price effect (₹ cr)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Volume Effect (CALCULATED)"
+                }
+              },
+              "queryRef": "Metrics.Volume Effect (CALCULATED)",
+              "nativeQueryRef": "Volume Effect (CALCULATED)",
+              "displayName": "Volume effect (₹ cr)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Price x Volume Interaction (CALCULATED)"
+                }
+              },
+              "queryRef": "Metrics.Price x Volume Interaction (CALCULATED)",
+              "nativeQueryRef": "Price x Volume Interaction (CALCULATED)",
+              "displayName": "Interaction (₹ cr)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Scenario Units Change % (CALCULATED)"
+                }
+              },
+              "queryRef": "Metrics.Scenario Units Change % (CALCULATED)",
+              "nativeQueryRef": "Scenario Units Change % (CALCULATED)",
+              "displayName": "Units change"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Scenario Price Change % (CALCULATED)"
+                }
+              },
+              "queryRef": "Metrics.Scenario Price Change % (CALCULATED)",
+              "nativeQueryRef": "Scenario Price Change % (CALCULATED)",
+              "displayName": "Price change"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Scenario Market Value (CALCULATED)"
+                }
+              },
+              "queryRef": "Metrics.Scenario Market Value (CALCULATED)",
+              "nativeQueryRef": "Scenario Market Value (CALCULATED)",
+              "displayName": "Scenario market value (₹ cr)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Scenario Market Value Change % (CALCULATED)"
+                }
+              },
+              "queryRef": "Metrics.Scenario Market Value Change % (CALCULATED)",
+              "nativeQueryRef": "Scenario Market Value Change % (CALCULATED)",
+              "displayName": "Market value change"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "dataLabels": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "14D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "categoryLabels": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "8D"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'How does the change decompose?'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "subTitle": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Price effect + volume effect + interaction = value change'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

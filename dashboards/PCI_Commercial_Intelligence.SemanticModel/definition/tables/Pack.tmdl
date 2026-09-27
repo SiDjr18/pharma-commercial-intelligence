@@ -1,0 +1,82 @@
+/// ONE ROW = one pack (PFC). Pack-grain attributes (molecule and form vary within a product).
+table 'Pack'
+
+	column 'pfc'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: pfc
+
+	column 'prod_code'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: prod_code
+
+	column 'company'
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: company
+
+	column 'subgroup'
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: subgroup
+
+	column 'index_desc'
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: index_desc
+
+	column 'Molecule'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Molecule
+
+	column 'Molecule Order'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Molecule Order
+
+	column 'Plain/Combination'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Plain/Combination
+
+	column 'Molecule Count'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Molecule Count
+
+	column 'Form (NFC1)'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Form (NFC1)
+
+	column 'Dosage Form'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Dosage Form
+
+	partition 'Pack' = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document ( File.Contents ( ProcessedFolder & "\pack.parquet" ) ),
+				    Kept = Table.SelectColumns ( Source, {"pfc", "prod_code", "company", "subgroup", "index_desc", "molecule_desc", "plain_combination", "molecule_count", "nfc1", "form_short_desc"} ),
+				    Unclassified = Table.TransformColumns ( Kept, {
+				        {"molecule_desc", each if _ = null then "(UNCLASSIFIED)" else _, type text},
+				        {"plain_combination", each if _ = null then "(UNCLASSIFIED)" else _, type text},
+				        {"molecule_count", each if _ = null then "(UNCLASSIFIED)" else Text.From ( _ ), type text} } ),
+				    Renamed = Table.RenameColumns ( Unclassified, {{"molecule_desc", "Molecule"}, {"plain_combination", "Plain/Combination"}, {"molecule_count", "Molecule Count"}, {"nfc1", "Form (NFC1)"}, {"form_short_desc", "Dosage Form"}} ),
+				    WithMolKeys = List.Sort ( List.Distinct ( Table.Column ( Renamed, "Molecule" ) ), Comparer.Ordinal ),
+				    WithMolMap = Record.FromList ( List.Positions ( WithMolKeys ), WithMolKeys ),
+				    WithMol = Table.AddColumn ( Renamed, "Molecule Order", each Record.Field ( WithMolMap, [Molecule] ), Int64.Type ),
+				    Typed = Table.TransformColumnTypes ( WithMol, {{"pfc", Int64.Type}, {"prod_code", Int64.Type}, {"company", type text}, {"subgroup", type text}, {"index_desc", type text}, {"Form (NFC1)", type text}, {"Dosage Form", type text}} )
+				in
+				    Typed
+

@@ -1,0 +1,137 @@
+/// Canonical OPP-1.0.0 product-in-market scores exported by pci_powerbi.export (one row per anchor x basis x product-in-subgroup). Never recomputed in DAX.
+table 'Opportunity Product'
+
+	column 'Anchor'
+		dataType: dateTime
+		formatString: mmm yyyy
+		isHidden
+		summarizeBy: none
+		sourceColumn: Anchor
+
+	column 'Basis'
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: Basis
+
+	column 'Entity Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Entity Key
+
+	column 'Product in Market'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Product in Market
+
+	column 'prod_code'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: prod_code
+
+	column 'Product Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Product Code
+
+	column 'Subgroup'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Subgroup
+
+	column 'Company'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Company
+
+	column 'Score Status'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Score Status
+
+	column 'Insufficient Reason'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Insufficient Reason
+
+	column 'Evidence'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Evidence
+
+	column 'Score'
+		dataType: double
+		formatString: 0.0
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: Score
+
+	column 'Opportunity Rank'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Opportunity Rank
+
+	column 'Market Growth %'
+		dataType: double
+		formatString: +0.0\%;-0.0\%;0.0\%
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: Market Growth %
+
+	column 'Evolution Index'
+		dataType: double
+		formatString: 0.0
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: Evolution Index
+
+	column 'Share in Market %'
+		dataType: double
+		formatString: 0.00\%
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: Share in Market %
+
+	column 'Market Growth Normalized'
+		dataType: double
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: Market Growth Normalized
+
+	column 'Momentum Normalized'
+		dataType: double
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: Momentum Normalized
+
+	column 'Matrix Quadrant'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Matrix Quadrant
+
+	column 'Momentum Side'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Momentum Side
+
+	column 'Market Growth Side'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Market Growth Side
+
+	column 'Methodology Version'
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: Methodology Version
+
+	partition 'Opportunity Product' = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document ( File.Contents ( PowerBIFolder & "\opportunity_product.parquet" ) ),
+				    Typed = Table.TransformColumnTypes ( Source, {{"Anchor", type date}, {"Basis", type text}, {"Entity Key", type text}, {"Product in Market", type text}, {"prod_code", Int64.Type}, {"Product Code", type text}, {"Subgroup", type text}, {"Company", type text}, {"Score Status", type text}, {"Insufficient Reason", type text}, {"Evidence", type text}, {"Score", type number}, {"Opportunity Rank", Int64.Type}, {"Market Growth %", type number}, {"Evolution Index", type number}, {"Share in Market %", type number}, {"Market Growth Normalized", type number}, {"Momentum Normalized", type number}, {"Matrix Quadrant", type text}, {"Momentum Side", type text}, {"Market Growth Side", type text}, {"Methodology Version", type text}} )
+				in
+				    Typed
+

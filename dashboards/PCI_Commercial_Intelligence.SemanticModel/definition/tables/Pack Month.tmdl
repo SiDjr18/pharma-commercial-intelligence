@@ -1,0 +1,50 @@
+/// ONE ROW = one pack (PFC) in one calendar month (dense, zero months kept). Source: data/processed/fact_pack_month.parquet.
+table 'Pack Month'
+
+	column 'pfc'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: pfc
+
+	column 'period'
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		isHidden
+		summarizeBy: none
+		sourceColumn: period
+
+	/// Rs crore
+	column 'value_cr'
+		dataType: double
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: sum
+		sourceColumn: value_cr
+
+	/// '000 packs (inferred)
+	column 'units_k'
+		dataType: double
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: sum
+		sourceColumn: units_k
+
+	/// '000 counting units (inferred)
+	column 'qty_k'
+		dataType: double
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: sum
+		sourceColumn: qty_k
+
+	partition 'Pack Month' = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document ( File.Contents ( ProcessedFolder & "\fact_pack_month.parquet" ) ),
+				    Kept = Table.SelectColumns ( Source, {"pfc", "period", "value_cr", "units_k", "qty_k"} ),
+				    Typed = Table.TransformColumnTypes ( Kept, {{"pfc", Int64.Type}, {"period", type date}, {"value_cr", type number}, {"units_k", type number}, {"qty_k", type number}} )
+				in
+				    Typed
+

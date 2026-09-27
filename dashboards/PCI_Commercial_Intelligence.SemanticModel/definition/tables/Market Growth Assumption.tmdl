@@ -1,0 +1,15 @@
+/// Allowed grid for market_growth_pct: [-100, 1000], step 1.
+table 'Market Growth Assumption'
+
+	column 'Market Growth %'
+		dataType: double
+		formatString: +0.0\%;-0.0\%;0.0\%
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Market Growth %]
+
+	partition 'Market Growth Assumption' = calculated
+		mode: import
+		source =
+				SELECTCOLUMNS ( GENERATESERIES ( -100, 1000, 1 ), "Market Growth %", [Value] * 1.0 )
+

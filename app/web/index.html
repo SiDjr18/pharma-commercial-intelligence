@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Pharma Commercial Intelligence</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="shell">
+  <!-- ============================================================ NAVIGATION -->
+  <aside class="sidebar" id="sidebar" aria-label="Product navigation">
+    <a class="brandmark" href="#/overview" aria-label="Pharma Commercial Intelligence — Executive Overview">
+      <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true" focusable="false">
+        <rect x="0.5" y="0.5" width="29" height="29" rx="5" fill="#173248" stroke="#2c4a63"/>
+        <rect x="7" y="16" width="3.4" height="7" rx="1" fill="#6cc0bf"/>
+        <rect x="13.3" y="11" width="3.4" height="12" rx="1" fill="#9fcdcd"/>
+        <rect x="19.6" y="7" width="3.4" height="16" rx="1" fill="#ffffff"/>
+      </svg>
+      <div><strong>Pharma Commercial Intelligence</strong><span>Brand Growth Engine</span></div>
+    </a>
+    <nav id="tabs" class="nav" aria-label="Primary">
+      <div class="nav-group" aria-hidden="true">Intelligence</div>
+      <a href="#/overview" data-page="overview"><span class="ix" aria-hidden="true">01</span>Executive Overview</a>
+      <a href="#/market" data-page="market"><span class="ix" aria-hidden="true">02</span>Market Intelligence</a>
+      <a href="#/therapy" data-page="therapy" class="sub">Segments &amp; mix</a>
+      <a href="#/product" data-page="product"><span class="ix" aria-hidden="true">03</span>Brand &amp; Portfolio</a>
+      <a href="#/company" data-page="company"><span class="ix" aria-hidden="true">04</span>Company Intelligence</a>
+      <div class="nav-group" aria-hidden="true">Decision support</div>
+      <a href="#/opportunity" data-page="opportunity"><span class="ix" aria-hidden="true">05</span>Opportunity Intelligence</a>
+      <a href="#/scenario" data-page="scenario"><span class="ix" aria-hidden="true">06</span>Scenario Planning</a>
+      <a href="/agent" data-page="nl"><span class="ix" aria-hidden="true">07</span>AI Analyst</a>
+      <div class="nav-group" aria-hidden="true">Trust</div>
+      <a href="#/method" data-page="method"><span class="ix" aria-hidden="true">08</span>Methodology &amp; Data Quality</a>
+    </nav>
+    <div class="sidebar-foot" id="sidebar-foot"><span class="dot" aria-hidden="true"></span><b>Local &amp; offline</b><br><span id="ds-note">National secondary-sales audit · no external services · data stays on this machine</span></div>
+  </aside>
+
+  <div class="workspace">
+    <!-- ============================================================ CONTEXT BAR -->
+    <header class="topbar">
+      <button class="icon-btn" id="nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><path d="M2 4h14M2 9h14M2 14h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+      <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
+      <span id="ds-badge" class="badge b-synthetic hidden" role="status" title="Fictional, structure-only synthetic dataset (docs/SYNTHETIC_DATA.md). Values describe an invented market, not real sales.">Synthetic data</span>
+      <div class="period" role="group" aria-label="Analysis period (applies to every page)">
+        <label for="g-anchor">Period ending</label>
+        <select id="g-anchor" class="select" aria-describedby="period-hint"></select>
+        <div class="seg" id="g-basis" role="radiogroup" aria-label="Period basis"></div>
+        <span id="period-hint" class="sr-only">Month, calendar year-to-date or moving annual total ending in the selected month.</span>
+      </div>
+    </header>
+
+    <div id="error" class="callout neg global-error hidden" role="alert"></div>
+
+    <main id="main" tabindex="-1">
+      <!-- ============================================================ 01 EXECUTIVE OVERVIEW -->
+      <section id="page-overview" class="page" aria-labelledby="h-overview">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">01 · Executive Overview</p>
+            <h1 id="h-overview">Commercial pulse</h1>
+            <p class="lede">What changed in the national market, where it changed, who drove it, where the opportunity is — and what to investigate next.</p>
+          </div>
+          <div class="page-meta" id="ov-meta"></div>
+        </header>
+
+        <div class="signal" id="ov-signal" aria-live="polite"></div>
+
+        <div class="grid">
+          <section class="panel span-7" aria-labelledby="h-ov-trend">
+            <header class="panel-h">
+              <div><h2 id="h-ov-trend">Market movement</h2><p class="q">What changed? National market over the 36 months of data.</p></div>
+              <div class="panel-tools" id="ov-trend-tools"></div>
+            </header>
+            <div class="panel-b"><div id="ov-trend"></div></div>
+            <footer class="panel-f" id="ov-trend-src"></footer>
+          </section>
+          <section class="panel span-5" aria-labelledby="h-ov-contrib">
+            <header class="panel-h">
+              <div><h2 id="h-ov-contrib">Where growth came from</h2><p class="q">Which therapy areas added to (or subtracted from) national value growth?</p></div>
+            </header>
+            <div class="panel-b"><div id="ov-contrib"></div></div>
+            <footer class="panel-f" id="ov-contrib-src"></footer>
+          </section>
+        </div>
+
+        <div class="grid">
+          <section class="panel span-6" aria-labelledby="h-ov-movers">
+            <header class="panel-h">
+              <div><h2 id="h-ov-movers">Markets driving the change</h2><p class="q">Which therapy subgroups (primary market) contributed most to national growth — and which held it back?</p></div>
+            </header>
+            <div class="panel-b"><div id="ov-movers"></div></div>
+            <footer class="panel-f" id="ov-movers-src"></footer>
+          </section>
+          <section class="panel span-6" aria-labelledby="h-ov-companies">
+            <header class="panel-h">
+              <div><h2 id="h-ov-companies">Who is gaining share</h2><p class="q">Share movement of the largest companies, in percentage points of the national market.</p></div>
+            </header>
+            <div class="panel-b"><div id="ov-companies"></div></div>
+            <footer class="panel-f" id="ov-companies-src"></footer>
+          </section>
+        </div>
+
+        <div class="grid">
+          <section class="panel span-7" aria-labelledby="h-ov-opp">
+            <header class="panel-h">
+              <div><h2 id="h-ov-opp">Opportunity signals <span class="badge b-descriptive">Descriptive · not a forecast</span></h2>
+                <p class="q">Where is the opportunity? Top-scored products-in-market by relative momentum and market growth.</p></div>
+              <div class="panel-tools"><a class="btn btn-sm" href="#/opportunity">Open Opportunity Intelligence</a></div>
+            </header>
+            <div class="panel-b"><div id="ov-opp"></div></div>
+            <footer class="panel-f" id="ov-opp-src"></footer>
+          </section>
+          <section class="panel span-5" aria-labelledby="h-ov-paths">
+            <header class="panel-h">
+              <div><h2 id="h-ov-paths">What to investigate next</h2><p class="q">Drill-down paths selected from the figures on this page.</p></div>
+            </header>
+            <div class="panel-b"><div id="ov-paths"></div></div>
+          </section>
+        </div>
+
+        <section class="panel" aria-labelledby="h-ov-products">
+          <header class="panel-h">
+            <div><h2 id="h-ov-products">Leading products</h2><p class="q">The ten largest products nationally and how their position is moving. Products are keyed by product code; brand is a label.</p></div>
+            <div class="panel-tools"><a class="btn btn-sm" href="#/product">Open Brand &amp; Portfolio</a></div>
+          </header>
+          <div class="panel-b flush"><div id="ov-products"></div></div>
+          <footer class="panel-f" id="ov-products-src"></footer>
+        </section>
+      </section>
+
+      <!-- ============================================================ 02 MARKET INTELLIGENCE -->
+      <section id="page-market" class="page hidden" aria-labelledby="h-market">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">02 · Market Intelligence</p>
+            <h1 id="h-market">Market movement</h1>
+            <p class="lede">Which markets are growing, which are contracting, and who is driving the change. Primary market = therapy <b>subgroup</b> (analytical definition).</p>
+          </div>
+          <div class="page-meta" id="mk-meta"></div>
+        </header>
+        <div class="filterbar" role="group" aria-label="Market filters">
+          <div class="field"><span class="lbl" id="lbl-mk-level">Market level</span><div class="seg" id="mk-level" role="radiogroup" aria-labelledby="lbl-mk-level"></div></div>
+          <div class="field"><label for="mk-area">Within therapy area</label><select id="mk-area" class="select"><option value="">All therapy areas</option></select></div>
+          <div class="field"><label for="mk-filter">Find market</label><input id="mk-filter" class="input wide" type="search" placeholder="Type to filter by name" autocomplete="off"></div>
+          <div class="spacer"></div>
+          <button class="btn btn-ghost" id="mk-reset" type="button">Reset filters</button>
+        </div>
+        <div class="active-filters" id="mk-chips" aria-live="polite"></div>
+
+        <div class="grid">
+          <section class="panel span-6" aria-labelledby="h-mk-rank">
+            <header class="panel-h"><div><h2 id="h-mk-rank">Market ranking</h2><p class="q" id="mk-rank-q">Ranked by value. Select a market to analyse it.</p></div></header>
+            <div class="panel-b flush"><div id="mk-table"></div></div>
+            <footer class="panel-f" id="mk-table-src"></footer>
+          </section>
+          <section class="panel span-6" aria-labelledby="h-mk-contrib">
+            <header class="panel-h"><div><h2 id="h-mk-contrib">Contribution to growth</h2><p class="q">Where did the change come from? Largest positive and negative contributors at this level (percentage points of the scope's prior value).</p></div></header>
+            <div class="panel-b"><div id="mk-contrib"></div></div>
+            <footer class="panel-f" id="mk-contrib-src"></footer>
+          </section>
+        </div>
+
+        <section class="panel accent-top" id="mk-detail-panel" aria-labelledby="h-mk-detail">
+          <div class="panel-b" id="mk-detail"></div>
+        </section>
+
+        <div class="grid">
+          <section class="panel span-6" aria-labelledby="h-mk-products">
+            <header class="panel-h"><div><h2 id="h-mk-products">Who drove the change — products</h2><p class="q" id="mk-products-q">Largest products in the selected market with their share movement.</p></div>
+              <div class="panel-tools"><div class="seg sm" id="mk-prod-view" role="radiogroup" aria-label="Product view"></div></div></header>
+            <div class="panel-b" id="mk-products-b"><div id="mk-products"></div></div>
+            <footer class="panel-f" id="mk-products-src"></footer>
+          </section>
+          <section class="panel span-6" aria-labelledby="h-mk-companies">
+            <header class="panel-h"><div><h2 id="h-mk-companies">Company positions</h2><p class="q">Which companies lead the selected market, and who is gaining share?</p></div></header>
+            <div class="panel-b flush"><div id="mk-companies"></div></div>
+            <footer class="panel-f" id="mk-companies-src"></footer>
+          </section>
+        </div>
+      </section>
+
+      <!-- ============================================================ 02b SEGMENTS & MIX -->
+      <section id="page-therapy" class="page hidden" aria-labelledby="h-therapy">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">02 · Market Intelligence · Segments &amp; mix</p>
+            <h1 id="h-therapy">Segment mix and mix shift</h1>
+            <p class="lede">How the value of a scope splits across source-confirmed segments (acute/chronic, Indian/MNC, plain/combination, molecule count, dosage form, NFC1) and how that mix moved against the prior year.</p>
+          </div>
+          <div class="page-meta" id="sg-meta"></div>
+        </header>
+        <div class="filterbar" role="group" aria-label="Segment filters">
+          <div class="field"><label for="sg-seg">Segment</label><select id="sg-seg" class="select"></select></div>
+          <div class="field"><label for="sg-scope">Scope</label><select id="sg-scope" class="select"></select></div>
+          <div class="field" id="sg-key-wrap"><label for="sg-key">Scope member</label><input id="sg-key" class="input wide" list="sg-key-list" placeholder="Type or pick" autocomplete="off"><datalist id="sg-key-list"></datalist></div>
+          <button class="btn btn-primary" id="sg-run" type="button">Apply</button>
+          <div class="spacer"></div>
+          <button class="btn btn-ghost" id="sg-reset" type="button">Reset filters</button>
+        </div>
+        <div class="active-filters" id="sg-chips" aria-live="polite"></div>
+        <div class="grid">
+          <section class="panel span-7" aria-labelledby="h-sg-mix">
+            <header class="panel-h"><div><h2 id="h-sg-mix">Mix shift</h2><p class="q">Share of scope value now vs the same window a year earlier.</p></div></header>
+            <div class="panel-b"><div id="sg-mix"></div></div>
+            <footer class="panel-f" id="sg-mix-src"></footer>
+          </section>
+          <section class="panel span-5" aria-labelledby="h-sg-growth">
+            <header class="panel-h"><div><h2 id="h-sg-growth">Growth by segment</h2><p class="q">Value growth vs prior year for each member of the segment.</p></div></header>
+            <div class="panel-b"><div id="sg-growth"></div></div>
+          </section>
+        </div>
+        <section class="panel" aria-labelledby="h-sg-table">
+          <header class="panel-h"><div><h2 id="h-sg-table">Segment detail</h2><p class="q">Exact values; contribution is in percentage points of the scope's prior value.</p></div></header>
+          <div class="panel-b flush"><div id="sg-table"></div></div>
+        </section>
+      </section>
+
+      <!-- ============================================================ 03 BRAND & PORTFOLIO -->
+      <section id="page-product" class="page hidden" aria-labelledby="h-product">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">03 · Brand &amp; Portfolio</p>
+            <h1 id="h-product">Product and brand performance</h1>
+            <p class="lede">Brand names are <b>not unique</b> — several companies can market the same brand name. Every product is identified by its <b>product code</b>; the brand is a label. When a name matches more than one product you choose — nothing is selected for you.</p>
+          </div>
+          <div class="page-meta" id="pr-meta"></div>
+        </header>
+        <div class="filterbar" role="search" aria-label="Find a product">
+          <div class="field"><label for="pr-q">Brand name contains</label><input id="pr-q" class="input wide" type="search" placeholder="At least 2 characters" autocomplete="off" minlength="2"></div>
+          <button class="btn btn-primary" id="pr-search" type="button">Search products</button>
+          <div class="field"><label for="pr-area">Leaderboard scope</label><select id="pr-area" class="select"><option value="">National (total market)</option></select></div>
+          <div class="spacer"></div>
+          <button class="btn btn-ghost" id="pr-reset" type="button">Clear product</button>
+        </div>
+        <div class="active-filters" id="pr-chips" aria-live="polite"></div>
+        <div id="pr-results-wrap" class="hidden">
+          <section class="panel" aria-labelledby="h-pr-results">
+            <header class="panel-h"><div><h2 id="h-pr-results">Matching products</h2><p class="q" id="pr-results-q"></p></div></header>
+            <div class="panel-b" id="pr-clarify-wrap"><div id="pr-clarify" aria-live="polite"></div></div>
+            <div class="panel-b flush"><div id="pr-results"></div></div>
+          </section>
+        </div>
+        <div id="pr-board">
+          <div class="grid">
+            <section class="panel span-7" aria-labelledby="h-pr-board">
+              <header class="panel-h"><div><h2 id="h-pr-board">Product leaderboard</h2><p class="q">Largest products in the selected scope. Select one for its full profile.</p></div></header>
+              <div class="panel-b flush"><div id="pr-board-table"></div></div>
+              <footer class="panel-f" id="pr-board-src"></footer>
+            </section>
+            <section class="panel span-5" aria-labelledby="h-pr-shift">
+              <header class="panel-h"><div><h2 id="h-pr-shift">Share movement</h2><p class="q">Which leading products are gaining or losing share (pp of scope)?</p></div></header>
+              <div class="panel-b"><div id="pr-shift"></div></div>
+            </section>
+          </div>
+        </div>
+        <div id="pr-detail" class="hidden">
+          <section class="panel accent-top" aria-labelledby="h-pr-title">
+            <div class="panel-b">
+              <div class="detail-head">
+                <div><p class="eyebrow">Product profile</p><h2 id="h-pr-title"></h2><p class="sub" id="pr-sub"></p></div>
+                <div class="row" id="pr-actions"></div>
+              </div>
+              <div class="identity" id="pr-identity"></div>
+              <div id="pr-kpis"></div>
+            </div>
+          </section>
+          <div class="grid">
+            <section class="panel span-7" aria-labelledby="h-pr-trend">
+              <header class="panel-h"><div><h2 id="h-pr-trend">Product trend</h2><p class="q" id="pr-trend-q">National trend across all the product's markets.</p></div>
+                <div class="panel-tools" id="pr-trend-tools"></div></header>
+              <div class="panel-b"><div id="pr-trend"></div></div>
+              <footer class="panel-f" id="pr-trend-src"></footer>
+            </section>
+            <section class="panel span-5" aria-labelledby="h-pr-pos">
+              <header class="panel-h"><div><h2 id="h-pr-pos">Position in market</h2><p class="q">Share, share change, evolution index and rank within one therapy subgroup.</p></div></header>
+              <div class="panel-b"><div id="pr-pos"></div></div>
+              <footer class="panel-f" id="pr-pos-src"></footer>
+            </section>
+          </div>
+          <section class="panel" aria-labelledby="h-pr-markets">
+            <header class="panel-h"><div><h2 id="h-pr-markets">Markets where this product competes</h2><p class="q">A product can sell in several therapy subgroups. Select a market to see its position there.</p></div></header>
+            <div class="panel-b flush"><div id="pr-markets"></div></div>
+            <footer class="panel-f" id="pr-markets-src"></footer>
+          </section>
+        </div>
+      </section>
+
+      <!-- ============================================================ 04 COMPANY INTELLIGENCE -->
+      <section id="page-company" class="page hidden" aria-labelledby="h-company">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">04 · Company Intelligence</p>
+            <h1 id="h-company">Company and portfolio movement</h1>
+            <p class="lede">Which companies lead, who is gaining share, and how each portfolio is composed. Choose a scope to compare companies within one therapy area, subgroup or segment.</p>
+          </div>
+          <div class="page-meta" id="co-meta"></div>
+        </header>
+        <div class="filterbar" role="group" aria-label="Company filters">
+          <div class="field"><label for="co-scope">Scope</label><select id="co-scope" class="select"></select></div>
+          <div class="field" id="co-key-wrap"><label for="co-key">Scope member</label><input id="co-key" class="input wide" list="co-key-list" placeholder="Type or pick" autocomplete="off"><datalist id="co-key-list"></datalist></div>
+          <button class="btn btn-primary" id="co-run" type="button">Apply</button>
+          <div class="field"><label for="co-filter">Find company</label><input id="co-filter" class="input" type="search" placeholder="Filter by name" autocomplete="off"></div>
+          <div class="spacer"></div>
+          <button class="btn btn-ghost" id="co-reset" type="button">Reset filters</button>
+        </div>
+        <div class="active-filters" id="co-chips" aria-live="polite"></div>
+        <div class="grid">
+          <section class="panel span-7" aria-labelledby="h-co-table">
+            <header class="panel-h"><div><h2 id="h-co-table">Company ranking</h2><p class="q">Ranked by value within the scope. Select a company to open its portfolio.</p></div></header>
+            <div class="panel-b flush"><div id="co-table"></div></div>
+            <footer class="panel-f" id="co-table-src"></footer>
+          </section>
+          <section class="panel span-5" aria-labelledby="h-co-shift">
+            <header class="panel-h"><div><h2 id="h-co-shift">Share gainers and losers</h2><p class="q">Share change of the 15 largest companies in the scope (pp).</p></div></header>
+            <div class="panel-b"><div id="co-shift"></div></div>
+          </section>
+        </div>
+        <div id="co-detail" class="hidden">
+          <section class="panel accent-top" aria-labelledby="h-co-title">
+            <div class="panel-b">
+              <div class="detail-head">
+                <div><p class="eyebrow">Company profile</p><h2 id="h-co-title"></h2><p class="sub" id="co-sub"></p></div>
+                <div class="row" id="co-actions"></div>
+              </div>
+              <div id="co-kpis"></div>
+            </div>
+          </section>
+          <div class="grid">
+            <section class="panel span-6" aria-labelledby="h-co-mix">
+              <header class="panel-h"><div><h2 id="h-co-mix">Portfolio composition</h2><p class="q">How the company's national value splits by segment, now vs a year earlier.</p></div>
+                <div class="panel-tools"><label class="sr-only" for="co-mix-seg">Segment</label><select id="co-mix-seg" class="select"></select></div></header>
+              <div class="panel-b"><div id="co-mix"></div></div>
+              <footer class="panel-f" id="co-mix-src"></footer>
+            </section>
+            <section class="panel span-6" aria-labelledby="h-co-products">
+              <header class="panel-h"><div><h2 id="h-co-products">Leading products</h2><p class="q" id="co-products-q">The company's largest products; shares are of the scope market.</p></div></header>
+              <div class="panel-b flush"><div id="co-products"></div></div>
+              <footer class="panel-f" id="co-products-src"></footer>
+            </section>
+          </div>
+          <section class="panel" aria-labelledby="h-co-positions">
+            <header class="panel-h"><div><h2 id="h-co-positions">Market exposure — largest product-in-market positions</h2><p class="q">Where the company's value sits by therapy subgroup, with market growth, share in market and the descriptive opportunity status.</p></div></header>
+            <div class="panel-b flush"><div id="co-positions"></div></div>
+            <footer class="panel-f" id="co-positions-src"></footer>
+          </section>
+        </div>
+      </section>
+
+      <!-- ============================================================ 05 OPPORTUNITY INTELLIGENCE -->
+      <section id="page-opportunity" class="page hidden" aria-labelledby="h-opportunity">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">05 · Opportunity Intelligence</p>
+            <h1 id="h-opportunity">Where the evidence points</h1>
+            <p class="lede">A transparent, percentile-based ranking of observed evidence: market growth, relative momentum and market position. Every score can be decomposed; entities without enough evidence are shown as not scored — never as zero.</p>
+          </div>
+          <div class="page-meta" id="op-meta"></div>
+        </header>
+        <div class="disclaimer opp" role="note">
+          <span class="glyph" aria-hidden="true">i</span>
+          <div><strong>DESCRIPTIVE OPPORTUNITY SCORE — NOT A FORECAST · NOT A PROBABILITY · NOT A GUARANTEE</strong>
+            <p>A relative ranking of past, observed evidence within the national reference population. It does not predict sales, estimate likelihood of success or imply causation.</p></div>
+        </div>
+        <div class="filterbar" role="group" aria-label="Opportunity filters">
+          <div class="field"><span class="lbl" id="lbl-op-level">Level</span><div class="seg" id="op-level" role="radiogroup" aria-labelledby="lbl-op-level"></div></div>
+          <div class="field"><label for="op-area">Therapy area</label><select id="op-area" class="select"><option value="">All therapy areas</option></select></div>
+          <div class="field" id="op-company-wrap"><label for="op-company">Company</label><input id="op-company" class="input" list="op-company-list" placeholder="All companies" autocomplete="off"><datalist id="op-company-list"></datalist></div>
+          <div class="field"><label for="op-top">Show</label><select id="op-top" class="select"><option value="50">Top 50</option><option value="100">Top 100</option><option value="250">Top 250</option><option value="500">Top 500</option></select></div>
+          <label class="toggle"><input type="checkbox" id="op-ins"> Include insufficient evidence</label>
+          <div class="spacer"></div>
+          <button class="btn btn-ghost" id="op-reset" type="button">Reset filters</button>
+        </div>
+        <div class="active-filters" id="op-chips" aria-live="polite"></div>
+        <div class="grid">
+          <section class="panel span-8" aria-labelledby="h-op-matrix">
+            <header class="panel-h"><div><h2 id="h-op-matrix">Opportunity matrix</h2><p class="q" id="op-matrix-q"></p></div></header>
+            <div class="panel-b"><div id="op-matrix"></div></div>
+            <footer class="panel-f" id="op-matrix-src"></footer>
+          </section>
+          <section class="panel span-4" aria-labelledby="h-op-quads">
+            <header class="panel-h"><div><h2 id="h-op-quads">Reading the matrix</h2><p class="q">Counts are for the rows shown. Select a quadrant to filter the list.</p></div></header>
+            <div class="panel-b"><div id="op-quads"></div></div>
+          </section>
+        </div>
+        <section class="panel" aria-labelledby="h-op-list">
+          <header class="panel-h"><div><h2 id="h-op-list">Ranked opportunities</h2><p class="q">Score decomposition shows the points each component contributes (they sum to the score). Select a row for the full evidence.</p></div></header>
+          <div class="panel-b" id="op-legend"></div>
+          <div class="panel-b flush"><div id="op-list"></div></div>
+          <footer class="panel-f" id="op-list-src"></footer>
+        </section>
+        <section class="panel" aria-labelledby="h-op-method">
+          <header class="panel-h"><div><h2 id="h-op-method">Methodology in force</h2><p class="q">Published with every result: version, fingerprint, components and weights, normalisation and thresholds.</p></div></header>
+          <div class="panel-b"><div id="op-method"></div></div>
+        </section>
+      </section>
+
+      <!-- ============================================================ 06 SCENARIO PLANNING -->
+      <section id="page-scenario" class="page hidden" aria-labelledby="h-scenario">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">06 · Scenario Planning</p>
+            <h1 id="h-scenario">What-if analysis on an observed baseline</h1>
+            <p class="lede">Deterministic arithmetic under assumptions you set explicitly. Observed baseline, your assumption and the calculated result are always shown separately.</p>
+          </div>
+          <div class="page-meta" id="sc-meta"></div>
+        </header>
+        <div class="disclaimer scn" role="note">
+          <span class="glyph" aria-hidden="true">!</span>
+          <div><strong>SCENARIO / WHAT-IF ANALYSIS — NOT A FORECAST</strong>
+            <p>Scenario analysis — not a forecast. No price elasticity, competitor reaction, seasonality or promotion effects are modelled. Invalid assumptions are rejected, never corrected.</p></div>
+        </div>
+        <div class="grid">
+          <section class="panel span-4" aria-labelledby="h-sc-build">
+            <header class="panel-h"><div><h2 id="h-sc-build">Build the scenario</h2><p class="q">Choose a type, an entity and your assumption. Results update as you adjust.</p></div></header>
+            <div class="panel-b">
+              <p class="step">1 · Scenario type</p>
+              <div class="types" id="sc-types" role="radiogroup" aria-label="Scenario type"></div>
+              <p class="step">2 · Entity</p>
+              <div class="stack">
+                <div class="field"><label for="sc-etype">Entity type</label><select id="sc-etype" class="select"></select></div>
+                <div class="field"><label for="sc-key">Entity</label>
+                  <input id="sc-key" class="input" list="sc-key-list" placeholder="Type or pick" autocomplete="off"><datalist id="sc-key-list"></datalist>
+                  <span class="hint" id="sc-key-hint"></span>
+                  <div id="sc-picker"></div>
+                </div>
+                <div class="row" id="sc-scope-row">
+                  <div class="field"><label for="sc-ml">Market scope</label><select id="sc-ml" class="select"></select></div>
+                  <div class="field" id="sc-mk-wrap"><label for="sc-mk">Scope member</label><input id="sc-mk" class="input" list="sc-mk-list" placeholder="Type or pick" autocomplete="off"><datalist id="sc-mk-list"></datalist></div>
+                </div>
+                <span class="hint" id="sc-scope-hint"></span>
+              </div>
+              <p class="step">3 · Assumptions</p>
+              <div class="stack" id="sc-assump"></div>
+              <div class="row between" id="sc-run-row">
+                <label class="toggle"><input type="checkbox" id="sc-live" checked> Update as I adjust</label>
+                <button class="btn btn-primary" id="sc-run" type="button">Run scenario</button>
+              </div>
+            </div>
+          </section>
+          <section class="panel span-8" aria-labelledby="h-sc-out" aria-live="polite">
+            <header class="panel-h"><div><h2 id="h-sc-out">Scenario result</h2><p class="q" id="sc-out-q">Observed baseline + assumption → calculated result, absolute and percentage change.</p></div></header>
+            <div class="panel-b"><div id="sc-out"></div></div>
+            <footer class="panel-f" id="sc-out-src"></footer>
+          </section>
+        </div>
+      </section>
+
+      <!-- ============================================================ 07 AI ANALYST (served at /agent) -->
+      <section id="page-nl" class="page hidden" aria-labelledby="h-nl">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">07 · AI Analyst · NATURAL LANGUAGE ANALYTICS</p>
+            <h1 id="h-nl">Ask the governed analyst</h1>
+            <p class="lede">Questions are routed by an orchestrator to specialist agents that may only call permission-checked tools; every answer passes deterministic QA. Runs in DETERMINISTIC DEMO MODE — no language model, API key or network.</p>
+          </div>
+        </header>
+        <div class="panel"><div class="panel-b"><a class="btn btn-primary" href="/agent" id="nl-open">Open the AI Analyst</a></div></div>
+      </section>
+
+      <!-- ============================================================ 08 METHODOLOGY & DATA QUALITY -->
+      <section id="page-method" class="page hidden" aria-labelledby="h-method">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">08 · Methodology &amp; Data Quality</p>
+            <h1 id="h-method">How every number is produced</h1>
+            <p class="lede">Market definition, data grain, periods, metrics, units, scoring and scenario methods, limitations and data-quality controls — the basis for trusting (and questioning) what this product shows.</p>
+          </div>
+          <div class="page-meta" id="me-meta"></div>
+        </header>
+        <div class="grid">
+          <nav class="toc span-3" aria-label="On this page">
+            <a href="#/method?s=me-data">Data foundation</a>
+            <a href="#/method?s=me-market">Market definition</a>
+            <a href="#/method?s=me-periods">Time periods</a>
+            <a href="#/method?s=me-metrics">Metrics &amp; units</a>
+            <a href="#/method?s=me-opp">Opportunity methodology</a>
+            <a href="#/method?s=me-scn">Scenario methodology</a>
+            <a href="#/method?s=me-status">Evidence status</a>
+            <a href="#/method?s=me-unsupported">Unsupported analysis</a>
+            <a href="#/method?s=me-dq">Data quality controls</a>
+            <a href="#/method?s=me-gov">Governance &amp; tools</a>
+          </nav>
+          <div class="panel doc span-9">
+            <section id="me-data" aria-labelledby="h-me-data">
+              <h2 id="h-me-data">Data foundation</h2>
+              <div id="me-syn-note" class="callout warn hidden" role="note"><b>This build runs on the SYNTHETIC dataset.</b> Entities, codes and numbers are fictional and structure-only (generated by <code>pci_synthetic</code>; no value copied or derived from the licensed data). The description below is the private source whose schema it reproduces.</div>
+              <ul>
+                <li><b>Source:</b> a private, licensed IMS-style national secondary-sales audit (one workbook sheet, 105,317 packs × 203 columns). The workbook is never read or exposed by this application.</li>
+                <li><b>Grain:</b> one row per pack; monthly value, units and counting-unit quantity. The finest grain this application shows is <b>product within a therapy subgroup</b> — already an aggregate.</li>
+                <li><b>Coverage:</b> national level only. There is no geography, channel, prescriber or promotion data.</li>
+                <li><b>Analytical layer:</b> pack-level Parquet + DuckDB views, independently re-implemented in Python and cross-validated field by field.</li>
+              </ul>
+              <div id="me-build"></div>
+            </section>
+            <section id="me-market" aria-labelledby="h-me-market">
+              <h2 id="h-me-market">Market definition</h2>
+              <p>The <b>primary market is the therapy subgroup</b> (an analytical definition from the source therapy hierarchy). Other levels: therapy area (supergroup), therapy group, molecule and the total market. A product can sell in several subgroups, so market membership is decided at pack level.</p>
+              <p><b>Identity:</b> products are keyed by <span class="formula">product code</span>; brand names are labels and are not unique across companies. Companies are the source company field. Opportunity scoring uses the product-in-subgroup key.</p>
+            </section>
+            <section id="me-periods" aria-labelledby="h-me-periods">
+              <h2 id="h-me-periods">Time periods</h2>
+              <p>Three bases, each compared with the same window twelve months earlier: <b>Month</b>; <b>Calendar YTD</b> (January to the selected month — not the Indian financial year); <b>MAT</b> (the twelve months to the selected month). The windows for the current selection, as returned by the engine:</p>
+              <div id="me-timeline" class="timeline"></div>
+              <p class="muted">Growth needs a complete comparison window: Month growth from June 2022, YTD growth from January 2023, MAT growth from May 2023. Earlier periods show growth as “n/a”, never 0%.</p>
+            </section>
+            <section id="me-metrics" aria-labelledby="h-me-metrics">
+              <h2 id="h-me-metrics">Metrics &amp; units</h2>
+              <div class="tw auto"><table class="dt"><thead><tr><th>Metric</th><th>Definition</th><th>Unit</th></tr></thead><tbody>
+                <tr><td>Value</td><td>Secondary sales value in the window</td><td>₹ crore (confirmed)</td></tr>
+                <tr><td>Units</td><td>Packs sold in the window</td><td>'000 packs (scale inferred)</td></tr>
+                <tr><td>Growth</td><td><span class="formula">current ÷ prior × 100 − 100</span>; blank (n/a) when prior is 0 or unavailable</td><td>%</td></tr>
+                <tr><td>Share</td><td><span class="formula">entity ÷ scope total × 100</span></td><td>% of scope</td></tr>
+                <tr><td>Share change</td><td>Share now minus share in the comparison window</td><td>percentage points (pp)</td></tr>
+                <tr><td>Evolution index (EI)</td><td><span class="formula">share now ÷ share a year ago × 100</span>; above 100 = gaining share</td><td>index</td></tr>
+                <tr><td>Contribution to growth</td><td><span class="formula">entity change ÷ scope prior value × 100</span>; contributions sum to the scope's growth</td><td>pp</td></tr>
+                <tr><td>Price</td><td><span class="formula">value ÷ units</span>, equal to the source price field</td><td>₹ per pack</td></tr>
+              </tbody></table></div>
+            </section>
+            <section id="me-opp" aria-labelledby="h-me-opp">
+              <h2 id="h-me-opp">Opportunity methodology</h2>
+              <p>A <b>descriptive</b> score from 0 to 100: each component is converted to a percentile (mid-rank) within the national reference population, then weighted. It ranks observed evidence; it is <b>not a forecast, probability or guarantee</b>. Entities below the evidence thresholds are <b>not scored</b> and are never shown as zero.</p>
+              <div id="me-opp-live"></div>
+            </section>
+            <section id="me-scn" aria-labelledby="h-me-scn">
+              <h2 id="h-me-scn">Scenario methodology</h2>
+              <p>Five deterministic what-if types on an <b>observed</b> baseline: price change, volume change, price + volume, market growth (market entities) and target market share (product or company within a market). Price is value ÷ units (₹ per pack). Every output is labelled <span class="badge b-observed">Observed</span> <span class="badge b-assumed">Assumed</span> or <span class="badge b-calculated">Calculated</span>. There is no elasticity, forecasting, competitor response or seasonality; out-of-range assumptions are rejected, not corrected.</p>
+              <div id="me-scn-live"></div>
+            </section>
+            <section id="me-status" aria-labelledby="h-me-status">
+              <h2 id="h-me-status">Evidence status</h2>
+              <div class="tw auto"><table class="dt"><thead><tr><th>Status</th><th>Meaning</th></tr></thead><tbody>
+                <tr><td><span class="badge b-observed">Observed</span></td><td>Read from the audited data for the stated window.</td></tr>
+                <tr><td><span class="badge b-calculated">Calculated</span></td><td>Deterministic result of a published formula (e.g. a scenario result).</td></tr>
+                <tr><td><span class="badge b-assumed">Assumed</span></td><td>An input you supplied; not evidence.</td></tr>
+                <tr><td><span class="badge b-descriptive">Descriptive</span></td><td>A relative ranking of observed evidence (opportunity score).</td></tr>
+                <tr><td><span class="badge b-insufficient">Insufficient evidence</span></td><td>Not enough data to score or compare — deliberately not converted to zero.</td></tr>
+                <tr><td><span class="na" title="No comparison value">n/a</span></td><td>The metric is undefined for this window (for example growth without a comparison period).</td></tr>
+                <tr><td><span class="badge b-unsupported">Unsupported</span></td><td>Outside the analytical model of the source (see below).</td></tr>
+              </tbody></table></div>
+            </section>
+            <section id="me-unsupported" aria-labelledby="h-me-unsupported">
+              <h2 id="h-me-unsupported">Unsupported analysis (by design)</h2>
+              <ul>
+                <li><b>Geography</b> (state, region, zone, city) — the source is national only.</li>
+                <li><b>Channel</b> and <b>SSA/HSA/DSA</b> splits — their meaning is unconfirmed, so they are not used.</li>
+                <li><b>Prescriber / HCP</b>, <b>promotion</b>, <b>forecasting</b>, <b>price elasticity</b> — not in the data and not modelled.</li>
+              </ul>
+              <p class="muted">Requests for these return an explicit “unsupported” state rather than an approximation.</p>
+            </section>
+            <section id="me-dq" aria-labelledby="h-me-dq">
+              <h2 id="h-me-dq">Data quality controls</h2>
+              <ul>
+                <li>Every numeric source column is reconciled to the analytical layer; the source's own MAT, YTD and price fields are reproduced.</li>
+                <li>SQL and an independent Python engine agree field by field; fault-injection tests guard every engine.</li>
+                <li>Opportunity scores are pinned by a methodology fingerprint; any methodology change requires a new version.</li>
+                <li>Scenario arithmetic is property-tested (zero change reproduces the baseline).</li>
+                <li>The AI Analyst's answers are checked by deterministic QA: every number must trace to a tool result field.</li>
+              </ul>
+              <div class="callout plain small">Units and counting-unit scale (’000) are inferred from workbook labels; value in ₹ crore is confirmed. These notes appear as caveats on every result that uses them.</div>
+              <p class="eyebrow">Live checks on the active dataset</p>
+              <div id="me-dq-live" aria-live="polite"></div>
+            </section>
+            <section id="me-gov" aria-labelledby="h-me-gov">
+              <h2 id="h-me-gov">Governance &amp; analytical tools</h2>
+              <p>This interface reads data only through a whitelist of named analytical tools with validated parameters. It has no SQL, code, file or raw-row access. Each panel's footer names the tool that produced it.</p>
+              <div id="me-versions"></div>
+              <div id="me-tools"></div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="app-foot">Local application · runs offline · no external services, telemetry or API keys · data stays on this machine</footer>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true">
+  <div class="drawer-h"><div><p class="eyebrow" id="drawer-eyebrow"></p><h2 id="drawer-title"></h2></div><button class="close-x" id="drawer-close" type="button" aria-label="Close details">×</button></div>
+  <div class="drawer-b" id="drawer-body"></div>
+</aside>
+<div class="tip hidden" id="tip" role="tooltip"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

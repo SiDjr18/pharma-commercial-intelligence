@@ -1,0 +1,5 @@
+/// Folder of the M3 processed Parquet layer (same files the SQL/Python engines read).
+expression ProcessedFolder = "<PRIVATE_DATA_ROOT>" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+
+/// Folder of the canonical opportunity-score exports (pci_powerbi.export).
+expression PowerBIFolder = "<PRIVATE_DATA_ROOT>\powerbi" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]

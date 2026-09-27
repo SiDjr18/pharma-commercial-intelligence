@@ -1,0 +1,164 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.4.0/schema.json",
+  "name": "md_cov",
+  "position": {
+    "x": 16,
+    "y": 96,
+    "z": 5000,
+    "width": 1248,
+    "height": 84,
+    "tabOrder": 5000
+  },
+  "visual": {
+    "visualType": "multiRowCard",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "First Data Month"
+                }
+              },
+              "queryRef": "Metrics.First Data Month",
+              "nativeQueryRef": "First Data Month",
+              "displayName": "First month"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Last Data Month"
+                }
+              },
+              "queryRef": "Metrics.Last Data Month",
+              "nativeQueryRef": "Last Data Month",
+              "displayName": "Last month"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Packs (all)"
+                }
+              },
+              "queryRef": "Metrics.Packs (all)",
+              "nativeQueryRef": "Packs (all)",
+              "displayName": "Packs (PFC)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Products (count)"
+                }
+              },
+              "queryRef": "Metrics.Products (count)",
+              "nativeQueryRef": "Products (count)",
+              "displayName": "Products (PROD_CODE)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Companies (count)"
+                }
+              },
+              "queryRef": "Metrics.Companies (count)",
+              "nativeQueryRef": "Companies (count)",
+              "displayName": "Companies"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Subgroups (count)"
+                }
+              },
+              "queryRef": "Metrics.Subgroups (count)",
+              "nativeQueryRef": "Subgroups (count)",
+              "displayName": "Markets (subgroups)"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "dataLabels": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "14D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "categoryLabels": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "8D"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'What does the data cover?'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

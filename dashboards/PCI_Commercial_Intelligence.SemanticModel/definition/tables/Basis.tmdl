@@ -1,0 +1,30 @@
+/// Disconnected: MONTH | calendar YTD | MAT (same definitions as sql/periods.sql).
+table 'Basis'
+
+	column 'Basis'
+		dataType: string
+		isHidden
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Basis]
+
+	column 'Basis Name'
+		dataType: string
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Basis Name]
+		sortByColumn: 'Basis Order'
+
+	column 'Basis Order'
+		dataType: int64
+		isHidden
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Basis Order]
+
+	partition 'Basis' = calculated
+		mode: import
+		source =
+				DATATABLE ( "Basis", STRING, "Basis Name", STRING, "Basis Order", INTEGER,
+				    { { "MONTH", "Month", 1 }, { "YTD", "Calendar YTD", 2 }, { "MAT", "MAT", 3 } } )
+

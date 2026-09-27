@@ -1,0 +1,15 @@
+/// Allowed grid for target_share_pct: [0, 100], step 0.1.
+table 'Target Share'
+
+	column 'Target Share %'
+		dataType: double
+		formatString: 0.00\%
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Target Share %]
+
+	partition 'Target Share' = calculated
+		mode: import
+		source =
+				SELECTCOLUMNS ( GENERATESERIES ( 0, 1000, 1 ), "Target Share %", [Value] / 10 )
+

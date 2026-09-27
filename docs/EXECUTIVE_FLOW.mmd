@@ -1,0 +1,25 @@
+flowchart LR
+    subgraph DATA["Data"]
+        direction TB
+        PRIV["Private IMS Data<br/>licensed workbook · local only · never committed"]
+        SYN["Synthetic Public Dataset<br/>fictional, structure-only, seeded"]
+    end
+
+    LAYER["Local Processed Data Layer<br/>Parquet + DuckDB views<br/>PCI_DATASET selects private or synthetic"]
+    ANALYTICS["Deterministic Analytics<br/>SQL engine + independent Python engine<br/>cross-validated · numerical source of truth"]
+    TOOLS["Tool / Function Layer<br/>15 whitelisted tools · schema-validated"]
+    AGENTS["Agent Orchestration<br/>deterministic, tool-grounded orchestration<br/>with refusal and guardrails"]
+    QA["QA & Governance<br/>refusals before tool calls · provenance checks<br/>failed drafts withheld"]
+    WEB["Local Web App<br/>analytics pages + AI Analyst"]
+    PBI["Power BI Desktop<br/>generated PBIP · reconciled to SQL and Python"]
+
+    PRIV --> LAYER
+    SYN --> LAYER
+    LAYER --> ANALYTICS
+    ANALYTICS --> TOOLS
+    TOOLS --> AGENTS
+    AGENTS --> QA
+    QA --> WEB
+    TOOLS --> WEB
+    LAYER --> PBI
+    ANALYTICS -. "reconciliation" .- PBI

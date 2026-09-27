@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>AI Analyst · Pharma Commercial Intelligence</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="shell">
+  <aside class="sidebar" id="sidebar" aria-label="Product navigation">
+    <a class="brandmark" href="/#/overview" aria-label="Pharma Commercial Intelligence — Executive Overview">
+      <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true" focusable="false">
+        <rect x="0.5" y="0.5" width="29" height="29" rx="5" fill="#173248" stroke="#2c4a63"/>
+        <rect x="7" y="16" width="3.4" height="7" rx="1" fill="#6cc0bf"/>
+        <rect x="13.3" y="11" width="3.4" height="12" rx="1" fill="#9fcdcd"/>
+        <rect x="19.6" y="7" width="3.4" height="16" rx="1" fill="#ffffff"/>
+      </svg>
+      <div><strong>Pharma Commercial Intelligence</strong><span>Brand Growth Engine</span></div>
+    </a>
+    <nav id="tabs" class="nav" aria-label="Primary">
+      <div class="nav-group" aria-hidden="true">Intelligence</div>
+      <a href="/#/overview" data-page="overview"><span class="ix" aria-hidden="true">01</span>Executive Overview</a>
+      <a href="/#/market" data-page="market"><span class="ix" aria-hidden="true">02</span>Market Intelligence</a>
+      <a href="/#/therapy" data-page="therapy" class="sub">Segments &amp; mix</a>
+      <a href="/#/product" data-page="product"><span class="ix" aria-hidden="true">03</span>Brand &amp; Portfolio</a>
+      <a href="/#/company" data-page="company"><span class="ix" aria-hidden="true">04</span>Company Intelligence</a>
+      <div class="nav-group" aria-hidden="true">Decision support</div>
+      <a href="/#/opportunity" data-page="opportunity"><span class="ix" aria-hidden="true">05</span>Opportunity Intelligence</a>
+      <a href="/#/scenario" data-page="scenario"><span class="ix" aria-hidden="true">06</span>Scenario Planning</a>
+      <a href="/agent" data-page="nl" aria-current="page"><span class="ix" aria-hidden="true">07</span>AI Analyst</a>
+      <div class="nav-group" aria-hidden="true">Trust</div>
+      <a href="/#/method" data-page="method"><span class="ix" aria-hidden="true">08</span>Methodology &amp; Data Quality</a>
+    </nav>
+    <div class="sidebar-foot"><span class="dot" aria-hidden="true"></span><b>Local &amp; offline</b><br>No language model, API key or network connection is used in deterministic demo mode</div>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar">
+      <button class="icon-btn" id="nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><path d="M2 4h14M2 9h14M2 14h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="/#/overview">Home</a><span class="sep" aria-hidden="true">/</span><span aria-current="page">AI Analyst</span></nav>
+      <div class="mode-strip" id="mode" aria-live="polite"><span class="badge b-neutral">Checking agent layer…</span></div>
+    </header>
+    <div id="error" class="callout neg global-error hidden" role="alert"></div>
+
+    <main id="main" tabindex="-1">
+      <header class="page-head">
+        <div>
+          <p class="eyebrow">07 · AI Analyst · AGENTIC ANALYTICS</p>
+          <h1>Ask the governed analyst</h1>
+          <p class="lede">Your question is routed by an orchestrator to a specialist agent, which may only call permission-checked analytical tools. Every answer is checked by deterministic QA before you see it — numbers must trace to a tool result field, or the answer is withheld.</p>
+        </div>
+      </header>
+
+      <section class="pipeline" id="pipeline" aria-label="How the last answer was produced">
+        <div class="pipe" data-step="q"><div class="k">1 · Question</div><div class="v idle">Waiting for a question</div></div>
+        <div class="pipe" data-step="orch"><div class="k">2 · Orchestrator</div><div class="v idle">Intent &amp; guardrails</div></div>
+        <div class="pipe" data-step="agent"><div class="k">3 · Specialist agent</div><div class="v idle">Market, brand, company, opportunity or scenario</div></div>
+        <div class="pipe" data-step="tool"><div class="k">4 · Permission-checked tool</div><div class="v idle">Whitelisted, deny by default</div></div>
+        <div class="pipe" data-step="engine"><div class="k">5 · Analytics engine</div><div class="v idle">Validated SQL / Python</div></div>
+        <div class="pipe" data-step="qa"><div class="k">6 · QA</div><div class="v idle">Deterministic checks</div></div>
+        <div class="pipe" data-step="ans"><div class="k">7 · Answer</div><div class="v idle">Released only if QA passes</div></div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-ask">
+        <header class="panel-h"><div><h2 id="h-ask">Ask a question</h2><p class="q">Deterministic demo mode understands a documented request grammar. Put names and keys in double quotes; add MAT, YTD or month and “for YYYY-MM” to change the period.</p></div></header>
+        <div class="panel-b">
+          <form class="composer" id="ask-form" autocomplete="off">
+            <label class="sr-only" for="q">Question</label>
+            <input id="q" class="input" type="text" maxlength="500" placeholder='e.g. top 5 products   ·   what if price +5% for therapy area "CARDIAC"'>
+            <button class="btn btn-primary" id="run" type="submit">Ask</button>
+          </form>
+          <div class="examples" id="examples" aria-label="Example questions"></div>
+          <details class="audit"><summary>Supported request forms</summary><ul id="forms" class="small"></ul></details>
+        </div>
+      </section>
+
+      <div class="section-title" id="thread-title">Answers</div>
+      <div class="thread" id="thread" aria-live="polite">
+        <div class="panel"><div class="state empty"><div class="ic" aria-hidden="true">?</div><div class="t">No questions yet</div><p>Choose an example above or type a question. Answers stay on this page only — nothing is stored.</p></div></div>
+      </div>
+    </main>
+    <footer class="app-foot">No language model is running in DETERMINISTIC DEMO MODE. No network, API key or paid service is used. Nothing you ask is stored.</footer>
+  </div>
+</div>
+<div class="scrim" id="scrim"></div>
+<script src="/static/agent.js"></script>
+</body>
+</html>

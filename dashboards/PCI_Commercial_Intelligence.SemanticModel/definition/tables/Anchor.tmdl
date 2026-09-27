@@ -1,0 +1,30 @@
+/// Disconnected: the anchor month of the analysis window (single select).
+table 'Anchor'
+
+	column 'Anchor Month'
+		dataType: dateTime
+		formatString: mmm yyyy
+		isHidden
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Anchor Month]
+
+	column 'Anchor'
+		dataType: string
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Anchor]
+		sortByColumn: 'Anchor Index'
+
+	column 'Anchor Index'
+		dataType: int64
+		isHidden
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Anchor Index]
+
+	partition 'Anchor' = calculated
+		mode: import
+		source =
+				SELECTCOLUMNS ( 'Period', "Anchor Month", 'Period'[Period], "Anchor", 'Period'[Period Label], "Anchor Index", 'Period'[Period Index] )
+

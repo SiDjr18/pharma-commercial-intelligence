@@ -1,0 +1,107 @@
+# ---- Secrets ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials*
+*credentials*.json
+*service-account*.json
+*.token
+
+# ---- Proprietary / private data (NEVER commit) ----
+*IMS*.xls*
+*.xlsx
+*.xlsm
+*.xlsb
+*.xls
+*.csv
+*.parquet
+*.feather
+*.arrow
+*.duckdb
+*.duckdb.wal
+*.db
+*.sqlite
+*.sqlite3
+*.pkl
+*.pickle
+*.h5
+*.zip
+*.7z
+
+data/raw/*
+data/processed/*
+data/profile/*
+!data/profile/DATA_QUALITY_BASELINE.md
+!data/**/.gitkeep
+# synthetic data is committed only after explicit review (M12)
+data/synthetic/*
+!data/synthetic/.gitkeep
+# M13: only the deterministic fingerprint is tracked; the data is regenerated (python -m pci_synthetic.generate)
+!data/synthetic/SYNTHETIC_FINGERPRINT.json
+
+# ---- Power BI (may embed data) ----
+*.pbix
+*.pbit
+# PBIP (M12): only the generated text definition is tracked; Desktop's local cache holds imported data
+*.abf
+**/.pbi/
+dashboards/**/cache.abf
+dashboards/**/localSettings.json
+# M13: synthetic-data Power BI project is generated on demand
+dashboards/_synthetic/
+
+# ---- Python ----
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.egg-info/
+build/
+dist/
+.coverage
+htmlcov/
+
+# ---- Node ----
+node_modules/
+.npm/
+*.tsbuildinfo
+.next/
+.vite/
+
+# ---- Caches, logs, temp ----
+.cache/
+logs/*
+!logs/.gitkeep
+*.log
+*.tmp
+*.temp
+~$*
+.DS_Store
+Thumbs.db
+
+# ---- Screenshots must be reviewed before committing ----
+screenshots/*
+!screenshots/.gitkeep
+
+# ---- Editors ----
+.vscode/
+.idea/
+
+# ---- M10 evaluation outputs: machine-readable reports stay local; only the metrics summary is tracked ----
+evaluation/reports/*
+!evaluation/reports/AGENT_EVAL_REPORT.md
+# M12: value-free Power BI reconciliation summary is tracked; detailed results with values stay local
+!evaluation/reports/POWER_BI_RECONCILIATION.md
+!evaluation/reports/POWER_BI_RECONCILIATION_SYNTHETIC.md
+# M15: synthetic metric traces (public-safe values)
+!evaluation/reports/METRIC_TRACES_SYNTHETIC.json

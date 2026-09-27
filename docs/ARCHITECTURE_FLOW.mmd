@@ -1,0 +1,83 @@
+flowchart TB
+    subgraph SRC["1 · Data sources"]
+        direction LR
+        PRIV["Private IMS Data<br/>licensed workbook, sheet DATA<br/>outside the repository · read-only"]
+        SPEC["Synthetic spec<br/>pci_synthetic: spec, names, schema<br/>reads no data file"]
+    end
+
+    subgraph LAYER["2 · Processing / Local Data Layer"]
+        direction LR
+        BUILD["pci_data.build_processed<br/>streamed read-only extract · source controls ·<br/>sha256 before and after"]
+        PPQ[("Local Processed Data Layer<br/>Parquet at the private data root<br/>git-ignored")]
+        GEN["pci_synthetic.generate<br/>seeded · pinned fingerprint"]
+        SPQ[("Synthetic Public Dataset<br/>data/synthetic Parquet")]
+        SWITCH{"PCI_DATASET<br/>private (default) or synthetic"}
+        DUCK["pci_data.db<br/>DuckDB views over Parquet · no data copy"]
+    end
+
+    subgraph AN["3 · Deterministic Analytics (numerical source of truth)"]
+        direction LR
+        SQL["SQL engine<br/>sql/*.sql macros · CommercialAnalytics API"]
+        PY["Independent Python engine<br/>pyarrow · no SQL"]
+        XV["Cross-validation<br/>SQL = Python, field by field"]
+        OPP["Opportunity scoring OPP-1.0.0<br/>canonical Python · descriptive, not a forecast"]
+        SCN["Scenario engine SCN-1.0.0<br/>what-if arithmetic on an observed baseline"]
+    end
+
+    subgraph TL["4 · Tool / Function Layer"]
+        REG["pci_app.tools.ToolRegistry<br/>15 whitelisted tools · JSON-schema input validation ·<br/>structured, scrubbed errors · no raw rows, SQL or file access"]
+    end
+
+    subgraph AGT["5 · Agent / Orchestration"]
+        direction LR
+        PROV["LLMProvider<br/>NONE (default): deterministic grammar<br/>GEMINI (optional): routing only, synthetic only"]
+        ORCH["Orchestrator"]
+        AGS["6 specialist agents"]
+        GW["ToolGateway<br/>per-agent permissions"]
+    end
+
+    subgraph GOV["6 · QA / Governance"]
+        direction LR
+        REF["Deterministic refusals<br/>before any tool call"]
+        QA["Deterministic QA engine<br/>provenance and consistency checks<br/>failed drafts withheld"]
+    end
+
+    subgraph WEB["7 · Local Web App (127.0.0.1, Python standard library)"]
+        direction LR
+        PAGES["Analytics pages<br/>app.js → /api/tools/*"]
+        ANALYST["AI Analyst<br/>agent.js → /api/agent"]
+    end
+
+    subgraph PBI["Power BI path (local, Desktop only)"]
+        direction LR
+        EXP["pci_powerbi.export<br/>copies canonical opportunity scores"]
+        BLD["pci_powerbi.build<br/>generated PBIP: TMDL model, DAX mirrors sql/metrics.sql,<br/>Power Query folder parameters"]
+        DESK["Power BI Desktop<br/>imports the Parquet layer"]
+        REC["pci_powerbi.reconcile<br/>visual queries vs SQL and Python"]
+    end
+
+    PRIV --> BUILD --> PPQ
+    SPEC --> GEN --> SPQ
+    PPQ --> SWITCH
+    SPQ --> SWITCH
+    SWITCH --> DUCK
+    DUCK --> SQL
+    SWITCH -- "pyarrow" --> PY
+    SQL --- XV --- PY
+    PY --> OPP
+    PY --> SCN
+    SQL --> REG
+    OPP --> REG
+    SCN --> REG
+    PROV --> ORCH --> AGS --> GW --> REG
+    PROV -. "refusal" .-> REF
+    ORCH --> QA
+    REG --> PAGES
+    QA --> ANALYST
+    REF --> ANALYST
+    OPP --> EXP --> DESK
+    BLD --> DESK
+    PPQ --> DESK
+    DESK --> REC
+    REC -. "compares with" .-> SQL
+    REC -. "compares with" .-> PY

@@ -1,0 +1,35 @@
+relationship r_fact_period
+	fromColumn: 'Pack Month'.period
+	toColumn: Period.Period
+
+relationship r_fact_pack
+	fromColumn: 'Pack Month'.pfc
+	toColumn: Pack.pfc
+
+relationship r_pack_product
+	fromColumn: Pack.prod_code
+	toColumn: Product.prod_code
+
+relationship r_pack_market
+	fromColumn: Pack.subgroup
+	toColumn: Market.Subgroup
+
+relationship r_pack_company
+	fromColumn: Pack.company
+	toColumn: Company.Company
+
+relationship r_oppp_product
+	fromColumn: 'Opportunity Product'.prod_code
+	toColumn: Product.prod_code
+
+relationship r_oppp_market
+	fromColumn: 'Opportunity Product'.Subgroup
+	toColumn: Market.Subgroup
+
+relationship r_oppp_company
+	fromColumn: 'Opportunity Product'.Company
+	toColumn: Company.Company
+
+relationship r_oppm_market
+	fromColumn: 'Opportunity Market'.Subgroup
+	toColumn: Market.Subgroup

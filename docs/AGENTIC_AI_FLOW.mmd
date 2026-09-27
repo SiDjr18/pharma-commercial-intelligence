@@ -1,0 +1,51 @@
+flowchart TB
+    Q["User question<br/>AI Analyst page → POST /api/agent"]
+
+    subgraph PLAN["Planning (provider)"]
+        direction TB
+        GUARD{"Deterministic guardrails<br/>geography · channel · SSA/HSA/DSA ·<br/>unsupported analysis · unsafe request"}
+        PROV["Provider plan: intent + parameters<br/>LLM_PROVIDER=NONE (default): rule-based grammar<br/>optional GEMINI: routing only, synthetic data only"]
+    end
+
+    REFUSE["Refusal with reason<br/>UNSUPPORTED_* · UNSAFE_REQUEST · UNRECOGNIZED_REQUEST<br/>no tool is called"]
+    VALID{"Intent and parameters<br/>on the allow-lists?"}
+    ORCH["Orchestrator<br/>routes and assembles · never calls tools · never calculates"]
+
+    subgraph AG["Specialist agents"]
+        direction LR
+        A1["MarketTrendAgent"]
+        A2["BrandProductAgent"]
+        A3["CompanySegmentAgent"]
+        A4["OpportunityAgent"]
+        A5["ScenarioAgent"]
+        A6["DataQualityAgent"]
+    end
+
+    GW{"ToolGateway<br/>per-agent permissions · deny by default"}
+    DENY["TOOL_NOT_PERMITTED"]
+    REG["ToolRegistry<br/>15 whitelisted tools · input schema validation · structured errors"]
+    ENG["Deterministic analytics<br/>SQL engine · Python opportunity and scenario engines"]
+    AMB{"Ambiguous entity?"}
+    CLAR["Clarification<br/>AMBIGUOUS_ENTITY · the user chooses · never auto-selected"]
+    COMP["Compose answer<br/>template text from tool result fields only"]
+    QAE{"Deterministic QA engine<br/>numeric provenance · units · period and entity ·<br/>tool scope · scenario-not-forecast · unsupported claims"}
+    OK["Answer with claim-level provenance<br/>claim → tool → result field → value"]
+    FAIL["QA_FAILED<br/>draft withheld"]
+
+    Q --> GUARD
+    GUARD -- "refused" --> REFUSE
+    GUARD -- "allowed" --> PROV
+    PROV --> VALID
+    VALID -- "no" --> REFUSE
+    VALID -- "yes" --> ORCH
+    ORCH --> AG
+    AG --> GW
+    GW -- "not permitted" --> DENY
+    GW -- "permitted" --> REG
+    REG --> ENG
+    ENG --> AMB
+    AMB -- "yes" --> CLAR
+    AMB -- "no" --> COMP
+    COMP --> QAE
+    QAE -- "pass" --> OK
+    QAE -- "fail" --> FAIL

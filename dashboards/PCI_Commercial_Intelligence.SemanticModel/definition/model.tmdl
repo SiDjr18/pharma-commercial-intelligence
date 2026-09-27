@@ -1,0 +1,24 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-US
+	discourageImplicitMeasures
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+ref table 'Pack Month'
+ref table 'Pack'
+ref table 'Product'
+ref table 'Market'
+ref table 'Company'
+ref table 'Period'
+ref table 'Anchor'
+ref table 'Basis'
+ref table 'Opportunity Product'
+ref table 'Opportunity Market'
+ref table 'Scenario Type'
+ref table 'Price Change'
+ref table 'Volume Change'
+ref table 'Market Growth Assumption'
+ref table 'Target Share'
+ref table 'Metrics'

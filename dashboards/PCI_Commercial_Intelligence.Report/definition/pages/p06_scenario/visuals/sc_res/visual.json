@@ -1,0 +1,184 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.4.0/schema.json",
+  "name": "sc_res",
+  "position": {
+    "x": 828,
+    "y": 302,
+    "z": 21000,
+    "width": 436,
+    "height": 190,
+    "tabOrder": 21000
+  },
+  "visual": {
+    "visualType": "multiRowCard",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Scenario Value (CALCULATED)"
+                }
+              },
+              "queryRef": "Metrics.Scenario Value (CALCULATED)",
+              "nativeQueryRef": "Scenario Value (CALCULATED)",
+              "displayName": "Scenario value (₹ cr)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Scenario Value Change (CALCULATED)"
+                }
+              },
+              "queryRef": "Metrics.Scenario Value Change (CALCULATED)",
+              "nativeQueryRef": "Scenario Value Change (CALCULATED)",
+              "displayName": "Change (₹ cr)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Scenario Value Change % (CALCULATED)"
+                }
+              },
+              "queryRef": "Metrics.Scenario Value Change % (CALCULATED)",
+              "nativeQueryRef": "Scenario Value Change % (CALCULATED)",
+              "displayName": "Change"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Scenario Units (CALCULATED)"
+                }
+              },
+              "queryRef": "Metrics.Scenario Units (CALCULATED)",
+              "nativeQueryRef": "Scenario Units (CALCULATED)",
+              "displayName": "Units ('000)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Scenario Price per Pack (CALCULATED)"
+                }
+              },
+              "queryRef": "Metrics.Scenario Price per Pack (CALCULATED)",
+              "nativeQueryRef": "Scenario Price per Pack (CALCULATED)",
+              "displayName": "Price (₹/pack)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Scenario Share Change pp (CALCULATED)"
+                }
+              },
+              "queryRef": "Metrics.Scenario Share Change pp (CALCULATED)",
+              "nativeQueryRef": "Scenario Share Change pp (CALCULATED)",
+              "displayName": "Share change"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "dataLabels": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "14D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "categoryLabels": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "8D"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Scenario — CALCULATED'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "subTitle": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'What-if arithmetic under the stated assumptions'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

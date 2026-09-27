@@ -1,0 +1,204 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.4.0/schema.json",
+  "name": "op_prod",
+  "position": {
+    "x": 16,
+    "y": 446,
+    "z": 13000,
+    "width": 828,
+    "height": 246,
+    "tabOrder": 13000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Opportunity Product"
+                    }
+                  },
+                  "Property": "Product Code"
+                }
+              },
+              "queryRef": "Opportunity Product.Product Code",
+              "nativeQueryRef": "Product Code",
+              "displayName": "Code"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Opportunity Product"
+                    }
+                  },
+                  "Property": "Product in Market"
+                }
+              },
+              "queryRef": "Opportunity Product.Product in Market",
+              "nativeQueryRef": "Product in Market",
+              "displayName": "Product in market"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Product Opportunity Score"
+                }
+              },
+              "queryRef": "Metrics.Product Opportunity Score",
+              "nativeQueryRef": "Product Opportunity Score",
+              "displayName": "Score"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Product Opportunity Rank"
+                }
+              },
+              "queryRef": "Metrics.Product Opportunity Rank",
+              "nativeQueryRef": "Product Opportunity Rank",
+              "displayName": "Rank"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Product Opp Market Growth %"
+                }
+              },
+              "queryRef": "Metrics.Product Opp Market Growth %",
+              "nativeQueryRef": "Product Opp Market Growth %",
+              "displayName": "Market growth"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Product Opp Evolution Index"
+                }
+              },
+              "queryRef": "Metrics.Product Opp Evolution Index",
+              "nativeQueryRef": "Product Opp Evolution Index",
+              "displayName": "EI"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Product Opp Share in Market %"
+                }
+              },
+              "queryRef": "Metrics.Product Opp Share in Market %",
+              "nativeQueryRef": "Product Opp Share in Market %",
+              "displayName": "Share in market"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Metrics"
+                    }
+                  },
+                  "Property": "Product Evidence"
+                }
+              },
+              "queryRef": "Metrics.Product Evidence",
+              "nativeQueryRef": "Product Evidence",
+              "displayName": "Evidence"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Metrics"
+                  }
+                },
+                "Property": "Product Opportunity Score"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Which products show the strongest evidence in their markets?'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "subTitle": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Score = 30% market growth + 40% relative momentum (EI) + 30% market position (share), as percentiles'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

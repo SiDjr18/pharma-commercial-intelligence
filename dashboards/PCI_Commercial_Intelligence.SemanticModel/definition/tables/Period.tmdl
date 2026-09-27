@@ -1,0 +1,52 @@
+/// ONE ROW = one calendar month present in the fact (Jun 2021 .. May 2024).
+table 'Period'
+
+	column 'Period'
+		dataType: dateTime
+		formatString: mmm yyyy
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Period]
+
+	column 'Year'
+		dataType: int64
+		formatString: 0
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Year]
+
+	column 'Month No'
+		dataType: int64
+		isHidden
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Month No]
+
+	column 'Period Label'
+		dataType: string
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Period Label]
+		sortByColumn: 'Period Index'
+
+	column 'Period Index'
+		dataType: int64
+		isHidden
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Period Index]
+
+	partition 'Period' = calculated
+		mode: import
+		source =
+				VAR mn = MIN ( 'Pack Month'[period] )
+				VAR mx = MAX ( 'Pack Month'[period] )
+				RETURN
+				    SELECTCOLUMNS (
+				        FILTER ( CALENDAR ( mn, mx ), DAY ( [Date] ) = 1 ),
+				        "Period", [Date],
+				        "Year", YEAR ( [Date] ),
+				        "Month No", MONTH ( [Date] ),
+				        "Period Label", FORMAT ( [Date], "mmm yyyy" ),
+				        "Period Index", DATEDIFF ( mn, [Date], MONTH ) + 1 )
+

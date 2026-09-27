@@ -1,0 +1,55 @@
+/// ONE ROW = one product (PROD_CODE).
+table 'Product'
+
+	column 'prod_code'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: prod_code
+
+	/// Authoritative product identity (source PROD_CODE).
+	column 'Product Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Product Code
+
+	/// Display label: BRAND (COMPANY) · product code. Brand names are NOT unique.
+	column 'Product'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Product
+
+	/// Display only; never a key.
+	column 'Brand'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Brand
+
+	/// Company of the product (display attribute).
+	column 'Company Label'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Company Label
+
+	column 'Launch Month'
+		dataType: dateTime
+		formatString: mmm yyyy
+		summarizeBy: none
+		sourceColumn: Launch Month
+
+	partition 'Product' = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document ( File.Contents ( ProcessedFolder & "\pack.parquet" ) ),
+				    Kept = Table.SelectColumns ( Source, {"prod_code", "brand", "company", "prod_launch_month"} ),
+				    Grouped = Table.Group ( Kept, {"prod_code"}, {
+				        {"Brand", each List.Min ( [brand] ), type text},
+				        {"Company Label", each List.Min ( [company] ), type text},
+				        {"Launch Month", each List.Min ( [prod_launch_month] ), type nullable date} } ),
+				    WithCode = Table.AddColumn ( Grouped, "Product Code", each Text.From ( [prod_code] ), type text ),
+				    WithLabel = Table.AddColumn ( WithCode, "Product", each [Brand] & " (" & [Company Label] & ") · " & [Product Code], type text ),
+				    Typed = Table.TransformColumnTypes ( WithLabel, {{"prod_code", Int64.Type}} )
+				in
+				    Typed
+

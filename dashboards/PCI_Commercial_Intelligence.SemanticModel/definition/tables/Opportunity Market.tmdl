@@ -1,0 +1,101 @@
+/// Canonical OPP-1.0.0 market (subgroup) scores exported by pci_powerbi.export.
+table 'Opportunity Market'
+
+	column 'Anchor'
+		dataType: dateTime
+		formatString: mmm yyyy
+		isHidden
+		summarizeBy: none
+		sourceColumn: Anchor
+
+	column 'Basis'
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: Basis
+
+	column 'Subgroup'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Subgroup
+
+	column 'Score Status'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Score Status
+
+	column 'Insufficient Reason'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Insufficient Reason
+
+	column 'Evidence'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Evidence
+
+	column 'Score'
+		dataType: double
+		formatString: 0.0
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: Score
+
+	column 'Opportunity Rank'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Opportunity Rank
+
+	column 'Market Growth %'
+		dataType: double
+		formatString: +0.0\%;-0.0\%;0.0\%
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: Market Growth %
+
+	column 'Market Size Share %'
+		dataType: double
+		formatString: 0.00\%
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: Market Size Share %
+
+	column 'Growth Normalized'
+		dataType: double
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: Growth Normalized
+
+	column 'Size Normalized'
+		dataType: double
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: Size Normalized
+
+	column 'Value Cur'
+		dataType: double
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: Value Cur
+
+	column 'Value Prior'
+		dataType: double
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: Value Prior
+
+	column 'Methodology Version'
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: Methodology Version
+
+	partition 'Opportunity Market' = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document ( File.Contents ( PowerBIFolder & "\opportunity_market.parquet" ) ),
+				    Typed = Table.TransformColumnTypes ( Source, {{"Anchor", type date}, {"Basis", type text}, {"Subgroup", type text}, {"Score Status", type text}, {"Insufficient Reason", type text}, {"Evidence", type text}, {"Score", type number}, {"Opportunity Rank", Int64.Type}, {"Market Growth %", type number}, {"Market Size Share %", type number}, {"Growth Normalized", type number}, {"Size Normalized", type number}, {"Value Cur", type number}, {"Value Prior", type number}, {"Methodology Version", type text}} )
+				in
+				    Typed
+

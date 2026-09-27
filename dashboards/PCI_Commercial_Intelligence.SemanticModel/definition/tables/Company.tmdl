@@ -1,0 +1,34 @@
+/// ONE ROW = one company (source COMPANY).
+table 'Company'
+
+	column 'Company'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Company
+
+	column 'Indian/MNC'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Indian/MNC
+
+	column 'Company Order'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Company Order
+
+	partition 'Company' = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document ( File.Contents ( ProcessedFolder & "\pack.parquet" ) ),
+				    Kept = Table.SelectColumns ( Source, {"company", "indian_mnc"} ),
+				    Grouped = Table.Group ( Kept, {"company"}, {{"Indian/MNC", each List.Min ( [indian_mnc] ), type text}} ),
+				    Renamed = Table.RenameColumns ( Grouped, {{"company", "Company"}} ),
+				    WithCoKeys = List.Sort ( List.Distinct ( Table.Column ( Renamed, "Company" ) ), Comparer.Ordinal ),
+				    WithCoMap = Record.FromList ( List.Positions ( WithCoKeys ), WithCoKeys ),
+				    WithCo = Table.AddColumn ( Renamed, "Company Order", each Record.Field ( WithCoMap, [Company] ), Int64.Type ),
+				    Done = WithCo
+				in
+				    Done
+

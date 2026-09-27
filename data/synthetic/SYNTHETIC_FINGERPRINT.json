@@ -1,0 +1,14 @@
+{
+  "dataset": "synthetic",
+  "generator": "pci_synthetic",
+  "version": "SYN-1.0.0",
+  "seed": 20260927,
+  "fingerprint_sha256": "a28d34960187393a76833118d9c4827688336cdd2299d61961bbce0cacc7f358",
+  "rows": {
+    "pack": 4000,
+    "fact_pack_month": 144000,
+    "pack_snapshot": 12000,
+    "pack_price_month": 24000
+  },
+  "note": "Structure-only fictional data; no value derived from the licensed source."
+}

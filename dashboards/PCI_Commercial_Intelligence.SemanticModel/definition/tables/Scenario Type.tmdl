@@ -1,0 +1,22 @@
+/// Supported M7 scenario types. Elasticity and forecasts are not supported.
+table 'Scenario Type'
+
+	column 'Scenario Type'
+		dataType: string
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Scenario Type]
+
+	column 'Scenario Order'
+		dataType: int64
+		isHidden
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Scenario Order]
+
+	partition 'Scenario Type' = calculated
+		mode: import
+		source =
+				DATATABLE ( "Scenario Type", STRING, "Scenario Order", INTEGER,
+				    { { "PRICE_CHANGE", 1 }, { "VOLUME_CHANGE", 2 }, { "PRICE_VOLUME_CHANGE", 3 }, { "MARKET_GROWTH", 4 }, { "MARKET_SHARE", 5 } } )
+

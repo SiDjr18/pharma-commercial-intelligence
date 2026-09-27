@@ -1,0 +1,76 @@
+/// ONE ROW = one therapy subgroup. Roll up to supergroup via subgroup.
+table 'Market'
+
+	/// PRIMARY market definition (source SUBGROUP).
+	column 'Subgroup'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Subgroup
+
+	/// Source GROUP; not nested in supergroup (2 exceptions).
+	column 'Therapy Group'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Therapy Group
+
+	/// Therapy area (source SUPERGROUP).
+	column 'Supergroup'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Supergroup
+
+	column 'Acute/Chronic'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Acute/Chronic
+
+	column 'Subgroup Order'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Subgroup Order
+
+	column 'Supergroup Order'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Supergroup Order
+
+	column 'Therapy Group Order'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Therapy Group Order
+
+	hierarchy 'Therapy Hierarchy'
+
+		level 'Supergroup'
+			column: 'Supergroup'
+
+		level 'Subgroup'
+			column: 'Subgroup'
+
+	partition 'Market' = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document ( File.Contents ( ProcessedFolder & "\pack.parquet" ) ),
+				    Kept = Table.SelectColumns ( Source, {"subgroup", "therapy_group", "supergroup", "acute_chronic"} ),
+				    Grouped = Table.Group ( Kept, {"subgroup"}, {
+				        {"Therapy Group", each List.Min ( [therapy_group] ), type text},
+				        {"Supergroup", each List.Min ( [supergroup] ), type text},
+				        {"Acute/Chronic", each List.Min ( [acute_chronic] ), type text} } ),
+				    Renamed = Table.RenameColumns ( Grouped, {{"subgroup", "Subgroup"}} ),
+				    WithSubKeys = List.Sort ( List.Distinct ( Table.Column ( Renamed, "Subgroup" ) ), Comparer.Ordinal ),
+				    WithSubMap = Record.FromList ( List.Positions ( WithSubKeys ), WithSubKeys ),
+				    WithSub = Table.AddColumn ( Renamed, "Subgroup Order", each Record.Field ( WithSubMap, [Subgroup] ), Int64.Type ),
+				    WithSgKeys = List.Sort ( List.Distinct ( Table.Column ( WithSub, "Supergroup" ) ), Comparer.Ordinal ),
+				    WithSgMap = Record.FromList ( List.Positions ( WithSgKeys ), WithSgKeys ),
+				    WithSg = Table.AddColumn ( WithSub, "Supergroup Order", each Record.Field ( WithSgMap, [Supergroup] ), Int64.Type ),
+				    WithTgKeys = List.Sort ( List.Distinct ( Table.Column ( WithSg, "Therapy Group" ) ), Comparer.Ordinal ),
+				    WithTgMap = Record.FromList ( List.Positions ( WithTgKeys ), WithTgKeys ),
+				    WithTg = Table.AddColumn ( WithSg, "Therapy Group Order", each Record.Field ( WithTgMap, [Therapy Group] ), Int64.Type ),
+				    Done = WithTg
+				in
+				    Done
+

@@ -1,0 +1,53 @@
+{
+  "dataset": "synthetic",
+  "run_at": "2026-09-27T16:42:35",
+  "traces": [
+    {
+      "question": "market performance by therapy area MAT for 2024-05",
+      "agent_statement": "#1 INFECTION DEFENCE: value 1,469.06 INR crore, growth +19.82%, share 19.50% (MAT (moving annual total) to 2024-05-01)",
+      "agent_value": 1469.0551830035872,
+      "tool": "get_market_performance",
+      "tool_input": {
+        "level": "supergroup",
+        "anchor": "2024-05-01",
+        "basis": "MAT",
+        "top_n": 5
+      },
+      "source_path": [
+        "rows",
+        0,
+        "value_cur"
+      ],
+      "entity": "INFECTION DEFENCE",
+      "tool_sql": "SELECT *, count(*) OVER () AS _matched FROM (SELECT * FROM market_performance(?, ?, ?)) t WHERE 1=1  ORDER BY rank_value LIMIT 5",
+      "independent_parquet_sum": 1469.0551830035822,
+      "python_engine": 1469.0551830035845,
+      "agree": true,
+      "qa_passed": true
+    },
+    {
+      "question": "market performance total month for 2024-05",
+      "agent_statement": "#1 Total market: value 647.48 INR crore, growth +11.26%, share 100.00% (Month to 2024-05-01)",
+      "agent_value": 11.263586225182237,
+      "tool": "get_market_performance",
+      "source_path": [
+        "rows",
+        0,
+        "value_growth_pct"
+      ],
+      "independent_growth_pct": 11.263586225182237,
+      "agree": true,
+      "qa_passed": true
+    },
+    {
+      "question": "what if price +10% for product 1000101704",
+      "agent_statement": "OBSERVED baseline value 540.27 INR crore; CALCULATED scenario value 594.29 INR crore; change +54.03 INR crore (+10.00%)",
+      "agent_value": 594.2915555147946,
+      "tool": "run_scenario",
+      "independent_baseline_parquet": 540.2650504679946,
+      "independent_scenario": 594.291555514794,
+      "agree": true,
+      "qa_passed": true
+    }
+  ]
+}

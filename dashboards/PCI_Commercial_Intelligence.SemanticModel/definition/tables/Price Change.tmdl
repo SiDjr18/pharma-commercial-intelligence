@@ -1,0 +1,15 @@
+/// Allowed grid for price_change_pct: (-100, 1000], step 1. Values outside the M7 range do not exist here.
+table 'Price Change'
+
+	column 'Price Change %'
+		dataType: double
+		formatString: +0.0\%;-0.0\%;0.0\%
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Price Change %]
+
+	partition 'Price Change' = calculated
+		mode: import
+		source =
+				SELECTCOLUMNS ( GENERATESERIES ( -99, 1000, 1 ), "Price Change %", [Value] * 1.0 )
+
