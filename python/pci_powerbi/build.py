@@ -13,7 +13,7 @@ import shutil
 from pathlib import Path
 
 from pci_analytics.opportunity_config import DEFAULT_CONFIG
-from pci_data.schema import PROCESSED_DIR
+from pci_data.schema import DATASET, IMS_DIR, PROCESSED_DIR, SYNTHETIC_DIR, assert_outside_repo
 from pci_analytics.scenario import METHODOLOGY_VERSION as SCN_VERSION
 
 from . import model, report, theme
@@ -24,7 +24,7 @@ NAME = "PCI_Commercial_Intelligence"
 # Public snapshot: the committed private project never records a machine path. Set the Power Query parameters
 # in Power BI Desktop, or regenerate with `--data-root <folder> --out <folder>` (writes the real folder).
 PRIVATE_DATA_ROOT = "<PRIVATE_DATA_ROOT>"
-PROCESSED = PROCESSED_DIR               # active dataset (PCI_DATASET; default private)
+PROCESSED = PROCESSED_DIR               # active dataset (PCI_DATASET; default synthetic)
 THEME_FILE = "PCI_M11_Theme.json"
 S = report.S
 
@@ -49,14 +49,22 @@ SYNTHETIC_OUT = DASH / "_synthetic"     # git-ignored target of the synthetic bu
 
 
 def build(out_dir: Path | None = None, processed_dir: Path = PROCESSED, anchor_label: str | None = None) -> dict:
-    """Private dataset (default): writes the committed project in dashboards/ (M12, unchanged).
-    Synthetic dataset (PCI_DATASET=synthetic): writes the same model/report to dashboards/_synthetic/ with its
-    parameters pointing at data/synthetic; it can never overwrite the committed private project."""
-    from pci_data.schema import DATASETS
-    synthetic = Path(processed_dir).resolve() == DATASETS["synthetic"].resolve()
+    """IMS dataset (PCI_DATASET=ims, its configured folder): writes the committed project in dashboards/ with the
+    placeholder <PRIVATE_DATA_ROOT> as data folder (text only: no data and no private path enter the repository).
+    Synthetic dataset: writes the same model/report to dashboards/_synthetic/ (git-ignored), parameters pointing at
+    data/synthetic; it can never overwrite the committed project. Any other data folder (--data-root) is written
+    verbatim, so it needs an explicit output folder, and in IMS mode that folder must be outside the repository."""
+    pdir = Path(processed_dir).resolve()
+    synthetic = pdir == SYNTHETIC_DIR.resolve()
+    ims_default = IMS_DIR is not None and pdir == IMS_DIR.resolve()
     out_dir = Path(out_dir) if out_dir else (SYNTHETIC_OUT if synthetic else DASH)
     if synthetic and out_dir.resolve() == DASH.resolve():
         raise ValueError("refusing to write a synthetic-data project over the committed private dashboards/ project")
+    if not synthetic and not ims_default:
+        if out_dir.resolve() == DASH.resolve():
+            raise ValueError("refusing to write a machine-specific data folder into the committed dashboards/ project")
+        if DATASET == "ims":
+            assert_outside_repo(out_dir)
     anchor_label = anchor_label or latest_anchor_label()
     sm, rp = out_dir / f"{NAME}.SemanticModel", out_dir / f"{NAME}.Report"
     for d in (sm / "definition", rp / "definition", rp / "StaticResources"):
@@ -71,10 +79,9 @@ def build(out_dir: Path | None = None, processed_dir: Path = PROCESSED, anchor_l
     _text(sm / "definition" / "database.tmdl", "database\n\tcompatibilityLevel: 1601\n")
     ts = model.tables()
     _text(sm / "definition" / "model.tmdl", model.model_tmdl(ts))
-    private_default = Path(processed_dir).resolve() == DATASETS["private"].resolve()
-    folder = PRIVATE_DATA_ROOT if private_default else str(processed_dir)
+    folder = PRIVATE_DATA_ROOT if ims_default else str(processed_dir)
     _text(sm / "definition" / "expressions.tmdl",
-          model.expressions_tmdl(folder, folder + "\\powerbi" if private_default else str(processed_dir / "powerbi")))
+          model.expressions_tmdl(folder, folder + "\\powerbi" if ims_default else str(processed_dir / "powerbi")))
     _text(sm / "definition" / "relationships.tmdl", model.relationships_tmdl())
     for t in ts:
         _text(sm / "definition" / "tables" / f"{t.name}.tmdl", model.table_tmdl(t))
@@ -101,7 +108,7 @@ def build(out_dir: Path | None = None, processed_dir: Path = PROCESSED, anchor_l
 if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser(description="Generate the PBIP for the active dataset (PCI_DATASET).")
-    ap.add_argument("--out", type=Path, default=None, help="output folder (default: dashboards/ for private, "
+    ap.add_argument("--out", type=Path, default=None, help="output folder (default: dashboards/ for ims, "
                                                             "dashboards/_synthetic/ for synthetic)")
     ap.add_argument("--data-root", type=Path, default=None,
                     help="M14 portability: absolute folder holding the processed-layer Parquet on THIS machine; written "

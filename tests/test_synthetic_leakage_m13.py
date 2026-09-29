@@ -10,8 +10,9 @@ import pytest
 from pci_data.schema import DATASETS
 from pci_synthetic import generate as G
 
-PRIVATE = DATASETS["private"]
-pytestmark = pytest.mark.skipif(not (PRIVATE / "pack.parquet").exists(), reason="private processed layer not present")
+PRIVATE = DATASETS.get("ims")          # only when PCI_DATASET=ims with a valid external PCI_IMS_DATA_DIR
+pytestmark = pytest.mark.skipif(PRIVATE is None or not (PRIVATE / "pack.parquet").exists(),
+                                reason="private IMS layer not configured (PCI_DATASET=ims + PCI_IMS_DATA_DIR)")
 
 # entity / code columns that must never coincide with the licensed data
 ENTITY_COLUMNS = ["supergroup", "therapy_group", "subgroup", "molecule_desc", "company", "manufacturer_desc", "brand",

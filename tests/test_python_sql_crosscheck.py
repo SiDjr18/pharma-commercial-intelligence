@@ -92,12 +92,14 @@ def test_zero_market_denominator(con, py_engine):
                           V.PERIOD_STRUCTURAL, V.PERIOD_NUMERIC).passed
 
 
+@pytest.mark.ims
 def test_duplicated_display_labels(py_engine):
     rows = metrics.entity_period(py_engine, "product", A, "MAT")
     labels = [r["entity_label"] for r in rows]
     assert len(set(labels)) < len(labels) and len({r["entity_key"] for r in rows}) == len(rows) == 60_079
 
 
+@pytest.mark.ims
 def test_product_spanning_subgroups_independent(py_engine):
     prod = {r["entity_key"]: r["value_cur"] for r in metrics.entity_period(py_engine, "product", A, "MAT")}
     parts = {}
@@ -143,6 +145,7 @@ def _parity(sql_env, py_env, key, structural, numeric, extra=()):
     assert [x[key[0]] for x in sql_env["rows"]] == [x[key[0]] for x in py_env["rows"]]   # same order
 
 
+@pytest.mark.ims
 def test_api_parity_all_functions(apis, py_engine):
     s, p = apis
     sg = V.resolve(py_engine, "@rank:subgroup:2")

@@ -15,7 +15,8 @@ Read first, every session: `PROJECT_STATUS.md` → `PROJECT_CONTEXT.md` → `IMP
 4. **No fabrication** — if the data does not support a question (e.g. geography, channel, HCP), say so. Unknowns in `DATA_DICTIONARY.md` stay UNKNOWN until confirmed.
 5. **Milestone discipline** — work only on the current milestone in `PROJECT_STATUS.md`. Update `PROJECT_STATUS.md` at the end of every milestone.
 6. **Performance** — keep the laptop responsive: stream/chunk, no duplicate datasets, no Docker, one dev server at most, minimal dependencies.
-7. **Git** — never commit `.env`, keys, IMS data, `data/processed`, `data/profile/*.json|csv`, logs, caches. Do not push without explicit approval.
+7. **Git** — never commit `.env`, keys, IMS data or anything derived from it, logs, caches. Do not push without explicit approval. Enable the publication guard once per clone (`git config core.hooksPath .githooks`; docs/PUBLICATION_GUARD.md).
+8. **Two modes (P1 isolation)** — `PCI_DATASET` unset/`synthetic` = public mode (default, `data/synthetic`). `PCI_DATASET=ims` + `PCI_IMS_DATA_DIR=<PRIVATE_EXTERNAL_DIRECTORY>` = private mode; the directory must be outside the repository and every IMS-derived output goes under it (`pci_data.schema.output_dir`). No discovery, no fallback between modes (docs/DATA_ISOLATION.md).
 
 ## Key schema facts (see DATA_DICTIONARY.md)
 - Sheet `DATA`, 105,317 rows × 203 cols, one row per pack (`PFC`, unique). Wide format.
@@ -26,8 +27,8 @@ Read first, every session: `PROJECT_STATUS.md` → `PROJECT_CONTEXT.md` → `IMP
 - A product can span several subgroups/molecules, so therapy/molecule membership is at pack grain.
 
 ## Working with the data (M3+)
-- Query via `pci_data.db.connect()` (DuckDB views over `data/processed/*.parquet`). Never re-read the xlsx for analytics.
-- Rebuild: `cd python && ..\.venv\Scripts\python.exe -m pci_data.build_processed`. Test: `.venv\Scripts\python.exe -m pytest` (`PCI_SKIP_SOURCE=1` for fast mode).
+- Query via `pci_data.db.connect()` (DuckDB views over the active dataset folder: `data/synthetic` or `PCI_IMS_DATA_DIR`). Never re-read the xlsx for analytics.
+- Rebuild (IMS mode only, with `PCI_SOURCE_PATH`): `cd python && ..\.venv\Scripts\python.exe -m pci_data.build_processed` (writes to `PCI_IMS_DATA_DIR`). Test: `.venv\Scripts\python.exe -m pytest` (`PCI_SKIP_SOURCE=1` for fast mode); tests marked `ims` run only in IMS mode.
 - Metrics come from `fact_pack_month`; `pack_snapshot` is only for reconciliation. Roll therapy up via subgroup. SSA/HSA/DSA are not for analytics.
 - Analytics (M4): call `pci_analytics.CommercialAnalytics` functions (API_SPEC.md); SQL engine in `sql/metrics.sql`. Primary market = SUBGROUP. YTD = calendar YTD. Growth NULL when prior ≤ 0/unavailable, never 0.
 - Independent check (M5): `cd python && ..\.venv\Scripts\python.exe -m pci_analytics.validation`. Any change to SQL metrics must keep SQL/Python parity (tests/test_python_sql_crosscheck.py).
@@ -37,8 +38,8 @@ Read first, every session: `PROJECT_STATUS.md` → `PROJECT_CONTEXT.md` → `IMP
 - Agents (M9): `python/pci_agents` may only reach analytics through `ToolGateway` → M8 `ToolRegistry`; never import engines/DuckDB/pyarrow/network libs (static test). Agents reference tool fields, never compute numbers; QA withholds failing answers. `LLM_PROVIDER` defaults to NONE (DETERMINISTIC DEMO MODE). The optional `LLM_PROVIDER=GEMINI` (Phase 3, `python/pci_llm_providers/`) routes only, requires `PCI_DATASET=synthetic` and an env key, and never writes numbers; keep network code out of `pci_agents`.
 - UI (M11): `app/web` is one design system (style.css tokens) and one router (`app.js`); UI code formats/sorts/filters/selects tool outputs only — never derives metrics, never auto-selects an ambiguous product, never clamps scenario assumptions. `app.js` calls only `/api/tools/*`, `agent.js` only `/api/agent*`. Keep `tests/test_ui_m11.py` green (ids, field contracts, vocabularies, a11y, security). Browser QA on a spare port if 8765 is taken.
 - Power BI (M12): `python/pci_powerbi/` generates `dashboards/*.pbip` (never hand-edit; `-m pci_powerbi.build`; drift test). Measures must reproduce `sql/metrics.sql`; opportunity scores are imported from `-m pci_powerbi.export`, never recomputed in DAX. After any model change run `-m pci_powerbi.reconcile` with Power BI Desktop open (0 failures). Never commit `.pbix/.pbit/.abf/.pbi/`; never change Power BI Desktop settings; no publish/sign-in.
-- Synthetic data (M13): `PCI_DATASET` ∈ {private (default), synthetic}; generator `python/pci_synthetic` (structure-only, fictional, deterministic; reads no data file; `SYNTHETIC_FINGERPRINT.json` pinned by tests). Never calibrate on, copy, sample or scale real rows or aggregates. Run the private 809-test suite with `PCI_DATASET` unset; synthetic tests are `tests/test_synthetic_*`. Demos, screenshots and external/LLM use: synthetic only.
-- Committed docs must not contain real value aggregates (shares, totals, prices); keep them in git-ignored `data/profile/` or `data/processed/`.
+- Synthetic data (M13): `PCI_DATASET` ∈ {synthetic (default), ims}; generator `python/pci_synthetic` (structure-only, fictional, deterministic; reads no data file; `SYNTHETIC_FINGERPRINT.json` pinned by tests). Never calibrate on, copy, sample or scale real rows or aggregates. Run the full suite with `PCI_DATASET=ims` + `PCI_IMS_DATA_DIR` (private) and again unset (public); `ims`-marked tests are skipped in public mode. Demos, screenshots and external/LLM use: synthetic only.
+- Committed docs must not contain real value aggregates (shares, totals, prices); keep them under `PCI_IMS_DATA_DIR` (outside the repository).
 - Install packages only into `.venv`, with `PIP_CACHE_DIR=<PROJECT_ROOT>\.cache\pip`.
 
 ## Conventions

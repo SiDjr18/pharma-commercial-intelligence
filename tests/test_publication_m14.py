@@ -30,6 +30,7 @@ DRIVE_PATH_ALLOWED = {
     "python/pci_powerbi/desktop.py", "python/pci_powerbi/as_bridge.ps1",   # Power BI Desktop install fallback
     "python/pci_agents/evaluation.py", "tests/test_agents.py", "tests/test_app.py",      # fictitious attack/scrub strings
     "tests/test_publication_m14.py",
+    "tests/test_isolation_p1.py", "tests/test_publication_guard.py",   # P1: fictitious attack / fail-closed inputs
 }
 
 

@@ -3,6 +3,10 @@ import datetime as dt
 
 import pytest
 
+# Private IMS suite (P1): these tests assert facts of the licensed dataset, so they run only with
+# PCI_DATASET=ims + PCI_IMS_DATA_DIR and are skipped in the default synthetic mode (tests/conftest.py).
+pytestmark = pytest.mark.ims
+
 TOL = 1e-6          # absolute tolerance on Rs crore / '000 sums (M3 reconciled to 1e-9 relative)
 GROWTH_TOL = 1e-9   # tolerance on growth percentages
 

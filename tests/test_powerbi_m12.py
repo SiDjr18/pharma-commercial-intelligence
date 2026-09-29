@@ -198,6 +198,7 @@ def test_theme_uses_m11_tokens():
 
 
 # ---------------------------------------------------------------------------------------- artefacts
+@pytest.mark.ims
 def test_generated_project_is_current(tmp_path):
     """The committed PBIP definition equals a fresh generation (no hand edits, no drift)."""
     build.build(out_dir=tmp_path, anchor_label="May 2024")

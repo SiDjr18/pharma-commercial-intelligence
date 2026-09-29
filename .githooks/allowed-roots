@@ -1,0 +1,4 @@
+# Publication guard (scripts/publication_guard.py): root commits whose history may be pushed to the public remote.
+# The public repository is a single orphan snapshot. Any other root (e.g. a private development history) is refused.
+# Changing this file is a deliberate publication decision; see docs/PUBLICATION_GUARD.md.
+6141d81ad2d39a3cc403bb23cf520a0eeb15598b

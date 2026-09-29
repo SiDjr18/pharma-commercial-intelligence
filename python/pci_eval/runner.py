@@ -22,13 +22,17 @@ from .cases import CASES, CATEGORIES, EvalCase
 
 REFUSALS = {"UNSAFE_REQUEST", "UNSUPPORTED_GEOGRAPHY", "UNSUPPORTED_CHANNEL", "UNSUPPORTED_SSA_HSA_DSA",
             "UNSUPPORTED_ANALYSIS"}
-REPORT_DIR = Path(__file__).resolve().parents[2] / "evaluation" / "reports"
+from pci_data.schema import output_dir  # noqa: E402
+# synthetic: evaluation/reports; IMS: <PCI_IMS_DATA_DIR>/reports (IMS-derived reports never enter the repository)
+REPORT_DIR = output_dir("reports", Path(__file__).resolve().parents[2] / "evaluation" / "reports")
 
 
 # ---------------------------------------------------------------- placeholders (harness only)
 def resolve_placeholders(registry, orchestrator) -> dict:
     inv = registry.invoke
-    rows = inv("get_brand_performance", {"top_n": None})["result"]["rows"]
+    # whole-population lookups go to the in-process analytics API (harness only): tool endpoints are row-capped (P1)
+    api = registry.api
+    rows = api.get_brand_performance(top_n=None)["rows"]
     by_brand = {}
     for r in rows:
         by_brand.setdefault(r["brand"], set()).add(r["entity_key"])
@@ -37,8 +41,8 @@ def resolve_placeholders(registry, orchestrator) -> dict:
                           ["result"]["rows"] if x["brand"].lower() == b.lower()}) > 1)
     unique = next(b for b in sorted(by_brand, key=lambda b: (-len(b), b)) if len(by_brand[b]) == 1 and b.isalpha()
                   and inv("find_products", {"name_contains": b, "limit": 500})["result"]["row_count"] == 1)
-    month = inv("get_brand_performance", {"basis": "MONTH", "top_n": None})["result"]["rows"]
-    opp = inv("get_opportunity_scores", {"include_insufficient": True, "top_n": None})["result"]["rows"]
+    month = api.get_brand_performance(basis="MONTH", top_n=None)["rows"]
+    opp = api.get_opportunity_scores(include_insufficient=True, top_n=None)["rows"]
     safe = lambda s: all(ch not in s for ch in '"\\') and ".." not in s  # noqa: E731
     subgroups = inv("get_market_performance", {"level": "subgroup", "top_n": 50})["result"]["rows"]
     companies = inv("get_company_performance", {"top_n": 50})["result"]["rows"]

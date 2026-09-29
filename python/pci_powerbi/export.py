@@ -7,7 +7,8 @@ Anchors exported: every month whose MAT / calendar-YTD window AND comparison win
 (earlier anchors are all INSUFFICIENT_EVIDENCE / insufficient_history; the report states that instead
 of importing ~1.6M rows that carry no score).
 
-Output (git-ignored, derived): data/processed/powerbi/opportunity_{product,market}.parquet + _manifest.json
+Output (derived, never tracked): <active dataset folder>/powerbi/opportunity_{product,market}.parquet + _manifest.json
+(IMS: <PCI_IMS_DATA_DIR>/powerbi, outside the repository; synthetic: data/synthetic/powerbi, git-ignored)
 Run:  cd python && ..\\.venv\\Scripts\\python.exe -m pci_powerbi.export
 """
 from __future__ import annotations
@@ -25,10 +26,10 @@ from pci_analytics.engine import default_engine
 from pci_analytics.opportunity import QUADRANTS, SCORED, score_all
 from pci_analytics.opportunity_config import DEFAULT_CONFIG
 from pci_data.db import connect
-from pci_data.schema import PROCESSED_DIR
+from pci_data.schema import DATASET, PROCESSED_DIR, assert_outside_repo
 
 ROOT = Path(__file__).resolve().parents[2]
-PROCESSED = PROCESSED_DIR               # active dataset (PCI_DATASET; default private)
+PROCESSED = PROCESSED_DIR               # active dataset (PCI_DATASET; default synthetic)
 OUT = PROCESSED / "powerbi"
 
 REASON_LABELS = {
@@ -148,6 +149,8 @@ def run(engine=None, anchors=None, out_dir: Path = OUT) -> dict:
     assert_keys_powerbi_safe()
     engine = engine or default_engine()
     anchors = anchors or eligible_anchors(engine)
+    if DATASET == "ims":
+        assert_outside_repo(out_dir)          # IMS-derived exports never enter the repository
     out_dir.mkdir(parents=True, exist_ok=True)
     sp, sm = _schema(OPP_PRODUCT_TYPES), _schema(OPP_MARKET_TYPES)
     tmp_p, tmp_m = out_dir / "opportunity_product.parquet.tmp", out_dir / "opportunity_market.parquet.tmp"

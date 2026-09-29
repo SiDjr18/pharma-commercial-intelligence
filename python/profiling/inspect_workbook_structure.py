@@ -10,9 +10,10 @@ import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from pci_data.schema import PROJECT_ROOT, SOURCE_PATH as SOURCE  # noqa: E402  (PCI_SOURCE_PATH-overridable)
+from pci_data.schema import PROJECT_ROOT, SOURCE_PATH as SOURCE, output_dir, require_ims  # noqa: E402
 
-OUT = PROJECT_ROOT / "data" / "profile" / "workbook_structure.json"
+require_ims("python/profiling")        # P1: IMS mode only; output under <PCI_IMS_DATA_DIR>/profile
+OUT = output_dir("profile", PROJECT_ROOT / "data" / "profile") / "workbook_structure.json"
 
 
 def main():
@@ -40,6 +41,7 @@ def main():
               "has_pivot_caches": any("pivotCache" in p["name"] for p in parts),
               "has_external_links": any("externalLink" in p["name"] for p in parts),
               "parts": parts}
+    OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(json.dumps({k: v for k, v in result.items() if k != "parts"}, indent=2))
     print("largest parts:")

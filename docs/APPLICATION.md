@@ -10,22 +10,23 @@ cd <PROJECT_ROOT>
 .venv\Scripts\python.exe run_app.py            # optional: --port 8765 --no-warm
 ```
 Open **http://127.0.0.1:8765**. Startup takes about 1 s; the Python engine is pre-loaded. Stop with Ctrl+C.
-The processed Parquet layer must exist (`data/processed`, built in M3). The IMS workbook is **not** read at runtime.
+The active processed layer must exist: `data/synthetic` (default; `python -m pci_synthetic.generate`) or, in IMS mode, `PCI_IMS_DATA_DIR` (built in M3, outside the repository). The IMS workbook is **not** read at runtime.
 
 ## Architecture
 ```
 Browser (app/web: index.html, app.js, style.css — vanilla JS, no external assets)
    │  same-origin fetch  POST /api/tools/<tool>
    ▼
-python/pci_app/server.py   stdlib ThreadingHTTPServer, 127.0.0.1 only, whitelisted routes, CSP headers
+python/pci_app/server.py   stdlib ThreadingHTTPServer, 127.0.0.1 only, whitelisted routes, CSP headers,
+                           Host allow-list (421), POST JSON + same-origin check (415/403)
    ▼
 python/pci_app/tools.py    ToolRegistry: contracts, validation, structured errors, path scrubbing
    ▼
 pci_analytics.CommercialAnalytics   (M4 SQL API + M6 opportunity + M7 scenario, unchanged)
    ▼
-DuckDB views / pyarrow engine over data/processed/*.parquet  (private, git-ignored)
+DuckDB views / pyarrow engine over the active dataset folder (data/synthetic, or PCI_IMS_DATA_DIR outside the repo)
 ```
-Routes: `GET /`, `GET /static/app.js`, `GET /static/style.css`, `GET /api/health`, `GET /api/tools`, `POST /api/tools/<name>`. Everything else returns 404; PUT/DELETE/PATCH are refused. Request bodies are limited to 64 KB. Requests are serialised with a lock, since there is one analytics connection and this is a single-user local app.
+Routes: `GET /`, `GET /static/app.js`, `GET /static/style.css`, `GET /api/health`, `GET /api/tools`, `POST /api/tools/<name>`. Everything else returns 404; PUT/DELETE/PATCH are refused. Request bodies are limited to 64 KB. The `Host` header must name this server as 127.0.0.1, localhost or [::1] with its port (else 421, which blocks DNS rebinding); POST bodies must be `application/json` and, when a browser sends `Origin`/`Sec-Fetch-Site`, same-origin (else 415/403). No CORS headers are sent. List tools never return an unbounded result: `top_n` null/absent means at most 2,000 rows (500 for product lists). Requests are serialised with a lock, since there is one analytics connection and this is a single-user local app.
 
 ## Pages
 | Page | Tools used | Shows |

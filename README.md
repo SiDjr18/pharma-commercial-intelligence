@@ -26,11 +26,11 @@ Deterministic, tool-grounded orchestration with refusal and guardrails: the anal
 flowchart LR
     subgraph DATA["Data"]
         direction TB
-        PRIV["Private IMS Data<br/>licensed workbook · local only · never committed"]
+        PRIV["Private IMS Data<br/>licensed · outside the repo (PCI_IMS_DATA_DIR) · never committed"]
         SYN["Synthetic Public Dataset<br/>fictional, structure-only, seeded"]
     end
 
-    LAYER["Local Processed Data Layer<br/>Parquet + DuckDB views<br/>PCI_DATASET selects private or synthetic"]
+    LAYER["Local Processed Data Layer<br/>Parquet + DuckDB views<br/>PCI_DATASET: synthetic (default) or ims (explicit)"]
     ANALYTICS["Deterministic Analytics<br/>SQL engine + independent Python engine<br/>cross-validated · numerical source of truth"]
     TOOLS["Tool / Function Layer<br/>15 whitelisted tools · schema-validated"]
     AGENTS["Agent Orchestration<br/>deterministic, tool-grounded orchestration<br/>with refusal and guardrails"]
@@ -54,19 +54,45 @@ flowchart LR
 - [Executive Flow](docs/EXECUTIVE_FLOW.mmd)
 - [Agentic AI Flow](docs/AGENTIC_AI_FLOW.mmd)
 
-## Quickstart (synthetic data, Windows, Python 3.13)
+## Quickstart (public mode: synthetic data, Windows, Python 3.13)
+**Default = synthetic data.** The public quickstart needs no IMS data and no private configuration: with
+`PCI_DATASET` unset the application uses the fictional, structure-only dataset in `data/synthetic/`.
 ```
 python -m venv .venv && .venv\Scripts\pip install -r requirements.txt
 cd python && ..\.venv\Scripts\python.exe -m pci_synthetic.generate && cd ..
-set PCI_DATASET=synthetic
 .venv\Scripts\python.exe run_app.py --port 8766      # http://127.0.0.1:8766 (local only, offline)
 ```
+Public mode never searches for data: it reads only `data/synthetic/`, binds to 127.0.0.1, accepts only local
+`Host`/`Origin` headers, caps every result list and makes no network call (no language model unless you opt in
+to the synthetic-only Gemini router, `docs/GEMINI_VALIDATION.md`).
 
-Tests:
+Tests (public mode):
 ```
 .venv\Scripts\python.exe scripts\run_tests_by_file.py
 ```
-The private-data suites need the licensed layer and are skipped or fail without it; the synthetic, UI, agent and publication suites run anywhere.
+Tests that assert facts of the licensed dataset carry the `ims` marker and are skipped in public mode; the synthetic,
+isolation, security, UI, agent-boundary and publication suites run anywhere.
+
+## Private local development (licensed IMS data — owner only)
+> **PRIVATE IMS DATA MUST NEVER BE COMMITTED, PUSHED, UPLOADED, SCREENSHOTTED OR SENT TO ANY EXTERNAL SERVICE.**
+
+Private mode is opt-in and needs two explicit settings; nothing is discovered automatically:
+```
+set PCI_DATASET=ims
+set PCI_IMS_DATA_DIR=<PRIVATE_EXTERNAL_DIRECTORY>
+```
+- `PCI_IMS_DATA_DIR` must be an existing absolute directory **outside** this repository (not inside it, not a parent
+  of it, not reached through a link into it, not inside any git work tree, not a drive root). Otherwise the
+  application refuses to start; it never falls back to synthetic data, and synthetic mode never falls back to IMS.
+- Every IMS-derived output (processed layer, Power BI exports, reconciliation and evaluation reports, profiles,
+  caches, test logs) is written under `PCI_IMS_DATA_DIR`, never into the repository.
+- External language models are refused in IMS mode (Gemini runs on synthetic data only).
+- Rebuild the processed layer from the workbook (the workbook must also be outside the repository):
+  `set PCI_SOURCE_PATH=<PRIVATE_WORKBOOK_PATH>` then `cd python && ..\.venv\Scripts\python.exe -m pci_data.build_processed`.
+- Before committing or pushing, enable the publication guard once per clone: `git config core.hooksPath .githooks`
+  (`docs/PUBLICATION_GUARD.md`). It blocks data files, private locations, secrets, drive paths and private history.
+
+Details: `SECURITY.md` and `docs/DATA_ISOLATION.md`.
 
 - Walkthrough: `DEMO_GUIDE.md`.
 - Power BI on synthetic data: `docs/POWER_BI_ARCHITECTURE.md` §11b.

@@ -14,6 +14,10 @@ from pci_eval import CASES, CATEGORIES, runner as R
 from pci_eval import controls as CTL
 from pci_eval.cases import ANALYTICS_TOOLS
 
+# Private IMS suite (P1): these tests assert facts of the licensed dataset, so they run only with
+# PCI_DATASET=ims + PCI_IMS_DATA_DIR and are skipped in the default synthetic mode (tests/conftest.py).
+pytestmark = pytest.mark.ims
+
 ROOT = Path(__file__).resolve().parents[1]
 PATH_RX = re.compile(r"(?<![A-Za-z])[A-Za-z]:[\\/]|/(?:e|c|d|home|users|mnt)/|\.parquet|\.xlsx|\.duckdb", re.I)
 
@@ -241,7 +245,8 @@ def test_eval_package_has_no_network_or_ai_imports():
 
 # ================================================================== reports & latency
 def test_reports_written_without_real_data(report, ph):
-    out = ROOT / ".cache" / "eval_test"
+    from pci_data.schema import output_dir
+    out = output_dir("cache", ROOT / ".cache") / "eval_test"      # IMS mode: outside the repository
     paths = R.write_reports(report, out)
     for p in paths.values():
         assert p.exists() and p.stat().st_size > 0

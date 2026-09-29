@@ -22,9 +22,12 @@ import pandas as pd
 
 import sys  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from pci_data.schema import PROJECT_ROOT, SOURCE_PATH as SOURCE  # noqa: E402  (PCI_SOURCE_PATH-overridable)
+from pci_data.schema import PROJECT_ROOT, SOURCE_PATH as SOURCE, output_dir, require_ims  # noqa: E402
 
-PROFILE_DIR = PROJECT_ROOT / "data" / "profile"
+# P1 isolation: profiling reads the licensed workbook, so it runs only with PCI_DATASET=ims and writes to
+# <PCI_IMS_DATA_DIR>/profile (outside the repository), never to data/profile.
+require_ims("python/profiling")
+PROFILE_DIR = output_dir("profile", PROJECT_ROOT / "data" / "profile")
 SHEET = "DATA"
 CHUNK = 10_000
 
@@ -310,7 +313,7 @@ def main():
                                              if k not in ("values", "python_types")},
              "python_types": json.dumps(columns[h]["python_types"])} for i, h in enumerate(header)]
     pd.DataFrame(rows).to_csv(PROFILE_DIR / "column_profile.csv", index=False)
-    print(f"done in {time.time()-t0:.0f}s -> {PROFILE_DIR}")
+    print(f"done in {time.time()-t0:.0f}s -> <PCI_IMS_DATA_DIR>/profile")
 
 
 if __name__ == "__main__":

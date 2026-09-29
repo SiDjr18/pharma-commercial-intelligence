@@ -15,7 +15,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 BRIDGE = Path(__file__).with_name("as_bridge.ps1")
-WORK = ROOT / ".cache" / "powerbi"          # git-ignored scratch (query text / results)
+from pci_data.schema import output_dir  # noqa: E402
+# scratch (query text / results): .cache/powerbi (git-ignored) for synthetic; <PCI_IMS_DATA_DIR>/cache/powerbi for IMS
+WORK = output_dir("cache", ROOT / ".cache") / "powerbi"
 PS = ["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass"]
 
 

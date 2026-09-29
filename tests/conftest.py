@@ -8,7 +8,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "python"))
 
-from pci_data.schema import MANIFEST_PATH, PROCESSED_DIR  # noqa: E402
+from pci_data.schema import DATASET, MANIFEST_PATH, PROCESSED_DIR  # noqa: E402
 
 # Baseline facts established in M2 profiling (DATA_DICTIONARY.md / DATA_QUALITY_BASELINE.md).
 # Any change here means the source or the transformation changed and must be reviewed.
@@ -39,12 +39,28 @@ BASELINE = {
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "source: re-reads the private source workbook (slow, ~2 min)")
+    config.addinivalue_line("markers", "ims: private IMS suite; runs only with PCI_DATASET=ims and PCI_IMS_DATA_DIR "
+                                       "(asserts licensed-data facts, so it is skipped in public/synthetic mode)")
+
+
+IMS_SKIP_REASON = ("private IMS suite: runs only with PCI_DATASET=ims and PCI_IMS_DATA_DIR "
+                   "(public mode uses the synthetic dataset)")
+
+
+def pytest_collection_modifyitems(config, items):
+    """Public mode (default): tests that assert facts of the licensed dataset are skipped, never run on synthetic."""
+    if DATASET == "ims":
+        return
+    skip = pytest.mark.skip(reason=IMS_SKIP_REASON)
+    for item in items:
+        if item.get_closest_marker("ims"):
+            item.add_marker(skip)
 
 
 @pytest.fixture(scope="session")
 def manifest():
     if not MANIFEST_PATH.exists():
-        pytest.skip("processed layer not built (data/processed/_manifest.json missing)")
+        pytest.skip(f"{DATASET} processed layer not available (_manifest.json missing)")
     return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
 
 

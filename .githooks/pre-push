@@ -1,0 +1,14 @@
+#!/bin/sh
+# Publication guard (docs/PUBLICATION_GUARD.md). Enable once per clone:  git config core.hooksPath .githooks
+# Fails closed: if no working Python 3 interpreter is found, or the guard cannot run, the operation is refused.
+# Interpreter order: $PCI_GUARD_PYTHON, the repository .venv, python3, python, py (each is probed first, so
+# placeholder stubs such as the Windows Store alias are skipped).
+ROOT="$(git rev-parse --show-toplevel)" || exit 2
+for PY in "$PCI_GUARD_PYTHON" "$ROOT/.venv/Scripts/python.exe" "$ROOT/.venv/bin/python" python3 python py; do
+  [ -n "$PY" ] || continue
+  if "$PY" -c "import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)" >/dev/null 2>&1; then
+    exec "$PY" "$ROOT/scripts/publication_guard.py" pre-push "$@"
+  fi
+done
+echo "publication guard: BLOCKED - no working Python 3 interpreter found (set PCI_GUARD_PYTHON)" >&2
+exit 2

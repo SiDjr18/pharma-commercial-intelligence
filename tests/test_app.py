@@ -91,10 +91,10 @@ def test_market_request_equals_engine(reg):
     ("get_market_trends", {"level": "total", "key": "TOTAL"}),
     ("get_brand_performance", {"basis": "YTD", "top_n": 5}),
     ("get_company_performance", {"top_n": 5}),
-    ("get_therapy_performance", {"level": "subgroup", "within_supergroup": "CARDIAC", "top_n": 5}),
+    pytest.param(*("get_therapy_performance", {"level": "subgroup", "within_supergroup": "CARDIAC", "top_n": 5}), marks=pytest.mark.ims),
     ("get_segment_analysis", {"segment": "dosage_form", "basis": "MONTH"}),
     ("get_opportunity_scores", {"level": "market", "top_n": 5}),
-    ("get_scenario_baseline", {"entity_type": "supergroup", "entity_key": "CARDIAC"}),
+    pytest.param(*("get_scenario_baseline", {"entity_type": "supergroup", "entity_key": "CARDIAC"}), marks=pytest.mark.ims),
 ])
 def test_valid_requests(reg, name, params):
     out = reg.invoke(name, params)
@@ -102,6 +102,7 @@ def test_valid_requests(reg, name, params):
     _assert_safe(out)
 
 
+@pytest.mark.ims
 def test_product_request_chain(reg):
     p = reg.invoke("find_products", {"name_contains": "cal", "limit": 1})["result"]["rows"][0]
     code = str(p["prod_code"])
@@ -121,6 +122,7 @@ def test_opportunity_preserves_m6_methodology(reg):
     assert d["ok"] and d["result"]["rows"][0]["score"] == out["result"]["rows"][0]["score"]
 
 
+@pytest.mark.ims
 def test_scenario_preserves_m7_methodology(reg):
     out = reg.invoke("run_scenario", {"scenario_type": "PRICE_CHANGE", "entity_type": "supergroup", "entity_key": "CARDIAC",
                                       "assumptions": {"price_change_pct": 5}})
@@ -196,6 +198,7 @@ def test_path_scrubbing():
 
 
 # ================================================================== K-N. security / privacy
+@pytest.mark.ims
 def test_no_sql_injection_or_execution(reg, con):
     payloads = ["'; DROP TABLE pack; --", "x' OR '1'='1", "subgroup; SELECT * FROM fact_pack_month"]
     for p in payloads:

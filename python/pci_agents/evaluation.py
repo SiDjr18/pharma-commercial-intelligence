@@ -81,8 +81,9 @@ CASES = [
 
 
 def resolve_placeholders(registry) -> dict:
-    """Harness-only lookups through the ToolRegistry (never used by agents)."""
-    rows = registry.invoke("get_brand_performance", {"top_n": None})["result"]["rows"]
+    """Harness-only lookups (never used by agents). Whole-population lists come from the in-process analytics API
+    because tool endpoints are row-capped (P1); single lookups still go through the ToolRegistry."""
+    rows = registry.api.get_brand_performance(top_n=None)["rows"]
     by_brand = {}
     for r in rows:
         by_brand.setdefault(r["brand"], set()).add(r["entity_key"])
@@ -90,7 +91,7 @@ def resolve_placeholders(registry) -> dict:
     unique = next(b for b in sorted(by_brand, key=lambda b: (-len(b), b))
                   if len(by_brand[b]) == 1 and b.isalpha()
                   and registry.invoke("find_products", {"name_contains": b, "limit": 500})["result"]["row_count"] == 1)
-    month = registry.invoke("get_brand_performance", {"basis": "MONTH", "top_n": None})["result"]["rows"]
+    month = registry.api.get_brand_performance(basis="MONTH", top_n=None)["rows"]
     dormant = next(r["entity_key"] for r in month if r["units_cur"] == 0)
     company = registry.invoke("get_company_performance", {"market_level": "supergroup", "market_key": "CARDIAC",
                                                           "top_n": 1})["result"]["rows"][0]["entity_key"]

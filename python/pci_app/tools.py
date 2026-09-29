@@ -10,6 +10,7 @@ No metric is computed here; every number comes from the M4-M7 engines unchanged.
 from __future__ import annotations
 
 import datetime as dt
+import inspect
 import json
 import logging
 import math
@@ -29,7 +30,12 @@ TOOL_API_VERSION = "TOOLS-1.0.0"
 DATE = {"type": "string", "format": "date", "description": "ISO date; any day in the month (normalised to the 1st). "
                                                            "Data range 2021-06..2024-05."}
 BASIS = {"type": "string", "enum": list(BASES), "description": "MONTH | YTD (calendar Jan..anchor) | MAT (12 months)"}
-TOP_N = {"type": "integer", "minimum": 1, "maximum": 5000, "nullable": True, "description": "rows to return (null = all)"}
+# Row caps (P1): no endpoint returns an unbounded list. null/absent top_n means "up to the safe maximum", never "all".
+MAX_ROWS = 2000              # dimension lists (markets, therapy levels, companies, market-level opportunity)
+MAX_PRODUCT_ROWS = 500       # product-grain lists (products, product-level opportunity)
+TOP_N = {"type": "integer", "minimum": 1, "maximum": MAX_ROWS, "nullable": True,
+         "description": f"rows to return; null or absent = the safe maximum ({MAX_ROWS}; product lists "
+                        f"{MAX_PRODUCT_ROWS}). total_rows always reports the full count."}
 KEY = {"type": "string", "minLength": 1, "maxLength": 200}
 PERIOD_NOTE = ("Growth compares with the same window 12 months earlier; MONTH from 2021-06 (growth 2022-06), "
                "YTD from 2022-01 (growth 2023-01), MAT from 2022-05 (growth 2023-05).")
@@ -309,7 +315,34 @@ class ToolRegistry:
                 "opportunity_levels": list(OPP_LEVELS), "opportunity_bases": list(OPP_CONFIG.allowed_bases),
                 "opportunity_methodology_version": OPP_CONFIG.version,
                 "opportunity_fingerprint": OPP_CONFIG.fingerprint(), "tool_api_version": TOOL_API_VERSION,
-                "dataset": getattr(self.api, "dataset", "private")}
+                "dataset": getattr(self.api, "dataset", "ims"), "max_rows": MAX_ROWS,
+                "max_product_rows": MAX_PRODUCT_ROWS}
+
+    @staticmethod
+    def row_cap(name: str, params: dict) -> int | None:
+        """Safe maximum rows for a tool call (None: the tool has no top_n)."""
+        if "top_n" not in TOOLS[name]["input_schema"]["properties"]:
+            return None
+        product = name == "get_brand_performance" or (name == "get_opportunity_scores"
+                                                      and params.get("level", "product") == "product")
+        return MAX_PRODUCT_ROWS if product else MAX_ROWS
+
+    def _apply_row_cap(self, name: str, params: dict) -> tuple[dict, int | None]:
+        cap = self.row_cap(name, params)
+        if cap is None:
+            return params, None
+        if "top_n" not in params:                  # absent: the engine default if it is bounded, else the cap
+            p = inspect.signature(getattr(self.api, TOOLS[name]["method"])).parameters.get("top_n")
+            default = p.default if p is not None else None
+            if isinstance(default, int) and 1 <= default <= cap:
+                return params, None
+            return {**params, "top_n": cap}, cap
+        n = params["top_n"]
+        if n is None:                              # null: the safe maximum, never "all rows"
+            return {**params, "top_n": cap}, cap
+        if n > cap:
+            raise ToolError("INVALID_INPUT", f"top_n must be at most {cap} for {name} (safe maximum)")
+        return params, None
 
     def invoke(self, name: str, params: dict | None = None) -> dict:
         """Always returns a JSON-serialisable dict: {"ok": true, "tool", "result"} or {"ok": false, "error"}."""
@@ -318,10 +351,14 @@ class ToolRegistry:
                 raise ToolError("UNKNOWN_TOOL", f"unknown tool {name!r}; see /api/tools")
             params = {} if params is None else params
             validate(TOOLS[name]["input_schema"], params)
+            params, capped = self._apply_row_cap(name, params)
             if name == "get_application_metadata":
                 result = self.metadata()
             else:
                 result = getattr(self.api, TOOLS[name]["method"])(**params)
+            if capped and isinstance(result, dict) and (result.get("total_rows") or 0) > (result.get("row_count") or 0):
+                result = {**result, "caveats": list(result.get("caveats") or []) + [
+                    f"Result limited to the safe maximum of {capped} rows; total_rows gives the full count."]}
             return {"ok": True, "tool": name, "result": _scrub_obj(result)}
         except ToolError as e:
             return e.to_dict()

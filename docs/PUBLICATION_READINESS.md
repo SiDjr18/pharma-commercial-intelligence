@@ -37,7 +37,7 @@ Everything tracked (`git ls-files`, ~310 files), which covers:
 - `data/processed/` (private Parquet and manifest);
 - `data/profile/*.json|csv`;
 - `data/synthetic/*.parquet` (regenerated);
-- `data/processed/powerbi/`, `evaluation/reports/*.json|csv`, `.cache/`, `logs/`, `screenshots/`;
+- `data/synthetic/powerbi/` (public Power BI export; the IMS export is written to `PCI_IMS_DATA_DIR/powerbi/`, outside the repository, since P1 on 2026-09-28; before that it was `data/processed/powerbi/`, which stays ignored), `evaluation/reports/*.json|csv`, `.cache/`, `logs/`, `screenshots/`;
 - `dashboards/_synthetic/`, `*.pbix`, `*.pbit`, `*.abf`, `**/.pbi/`;
 - `.env`, `.venv/`.
 

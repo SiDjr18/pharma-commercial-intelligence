@@ -1,7 +1,8 @@
 # PROJECT STATUS
 
 ## CURRENT MILESTONE
-M16 — Portfolio documentation: **COMPLETE** (2026-09-27). All milestones M1–M16 complete. Remaining items are owner/manual actions (below); publication is prepared but not pushed.
+**P1 isolation fixes — COMPLETE (2026-09-28), not committed, not pushed.** Two-mode architecture: public/synthetic by default,
+private IMS only with `PCI_DATASET=ims` + an external `PCI_IMS_DATA_DIR`. M1–M16 complete. Remaining items are owner actions (below).
 
 ## COMPLETED
 - **M1–M8:** foundation, profiling, data layer, SQL analytics, Python cross-validation, opportunity scoring (OPP-1.0.0), scenario engine (SCN-1.0.0), local application and tool API (TOOLS-1.0.0)
@@ -65,6 +66,14 @@ M16 — Portfolio documentation: **COMPLETE** (2026-09-27). All milestones M1–
 
 - **Phase 4/5 — Stitch / Antigravity UI restyle (post-M16):** Stitch used as a visual reference only (export audited, never copied). Antigravity implemented a CSS-only restyle of `app/web/style.css`; the 28 Power BI-linked colour tokens are unchanged. Antigravity reported five-width browser QA (1440/1366/1024/768/375) to the owner; Claude's independent check was a partial smoke test (synthetic data: Overview at desktop width, Scenario and AI Analyst at 375 px; no horizontal scroll, no console errors, local requests only). Full regression (public snapshot): **886 passed, 0 failed, 0 errors, 0 skipped**. MIT LICENSE added.
 
+- **P1 isolation fixes (2026-09-28)** (docs/DATA_ISOLATION.md, docs/PUBLICATION_GUARD.md, SECURITY.md):
+  - `PCI_DATASET` unset/`synthetic` = public mode (default); `ims` = private mode with an explicit, validated external `PCI_IMS_DATA_DIR` (absolute, existing, outside the repo, not a parent, not via a link, not a drive root, not in a git work tree). Anything else fails closed; no fallback, no discovery (`python/pci_data/dataset.py`).
+  - IMS-derived outputs (processed layer, Power BI exports, reconciliation/evaluation reports, profiles, caches, test logs) go under `PCI_IMS_DATA_DIR` (`schema.output_dir`, `assert_outside_repo`); `build_processed`/profiling are IMS-only; the synthetic generator refuses to overwrite another layer; the manifest must match the selected mode.
+  - The existing IMS-derived files were moved (same-volume rename, hash-verified, no copy) from the repository to the external private directory; the source workbook was not touched.
+  - Local server: Host allow-list (421), POST requires JSON and a same-origin Origin/Sec-Fetch-Site (415/403), loopback bind only, refusals drain the body (no Windows reset). Tool results capped: null/absent `top_n` = at most 2,000 rows (500 for product lists).
+  - Publication guard: `.githooks/pre-commit` + `pre-push` → `scripts/publication_guard.py` (fail closed; path + reason only; blocks data files, private locations, secrets, drive/profile paths, configured private identifiers (never hard-coded; `PCI_SOURCE_PATH` stem, `PCI_IMS_DATA_DIR`, optional untracked `.git/info/pci-private-identifiers`), large/binary files and history not rooted at the public snapshot). Client-side hook: active once `core.hooksPath=.githooks` is set; a safety control, not a guarantee (`--no-verify` skips it). `.gitignore` hardened.
+  - Tests: +86 `tests/test_isolation_p1.py`, +32 `tests/test_publication_guard.py`; licensed-data tests carry the `ims` marker and are skipped in public mode.
+
 ## IN PROGRESS
 - **Live Gemini evaluation: PARTIAL / NOT COMPLETE DUE TO FREE-TIER DAILY QUOTA**: 2/26 executed and passed; 24 quota-blocked (free tier, 20 requests/day). Do not rerun before the quota resets; no paid tier. Record in docs/GEMINI_VALIDATION.md.
 
@@ -76,7 +85,7 @@ M16 — Portfolio documentation: **COMPLETE** (2026-09-27). All milestones M1–
 
 ## KNOWN RISKS / PRE-PUBLICATION ITEMS
 - A stale app process from a previous session may still hold port 8765 (serving pre-M10 code); M11 browser QA used port 8766. Stop old `run_app.py` processes before demoing.
-- **Git history cleanup before any publication (M14):** commit 5319019 contains real value shares and price percentiles in DATA_DICTIONARY.md history. They are removed from the working tree; history has not been rewritten (by instruction).
+- **Git history cleanup before any publication (M14):** commit 5319019 contains real value shares and price percentiles in DATA_DICTIONARY.md history. They are removed from the working tree; history has not been rewritten (by instruction). P1: the pre-push guard refuses any history not rooted at the public snapshot, once enabled with `git config core.hooksPath .githooks`.
 - Demo mode understands only the documented request grammar; refusal keywords are conservative.
 - No real LLM is connected: answers are templated. The evaluation proves governance for the demo grammar, not free-form language understanding.
 - M12: the committed PBIP keeps the local processed-data folder as its documented default parameter (`expressions.tmdl`); M14 added `pci_powerbi.build --data-root/--out` for portable builds (tested).
@@ -92,7 +101,7 @@ M16 — Portfolio documentation: **COMPLETE** (2026-09-27). All milestones M1–
 `python/pci_data/schema.py` (dataset switch), `python/pci_analytics/api.py` (optional `manifest_path`), `python/pci_powerbi/{build,export,reconcile,report}.py` (dataset-aware paths/outputs/footer; private defaults unchanged), `.gitignore`, README.md, DATA_PROVENANCE.md, SECURITY.md, ARCHITECTURE.md, CLAUDE.md, docs/POWER_BI_ARCHITECTURE.md, IMPLEMENTATION_PLAN.md, PROJECT_STATUS.md. SQL, engines, M12 measures/report and the 809 private tests are unchanged.
 
 ## FILES CREATED (M12)
-`python/pci_powerbi/{__init__,model,report,theme,build,export,desktop,reconcile}.py`, `python/pci_powerbi/as_bridge.ps1`, `tests/test_powerbi_m12.py`, `docs/POWER_BI_ARCHITECTURE.md`, `evaluation/reports/POWER_BI_RECONCILIATION.md` (value-free summary), generated `dashboards/PCI_Commercial_Intelligence.pbip` + `.SemanticModel/` + `.Report/` (text definitions, no data). Local only (git-ignored): `data/processed/powerbi/` (canonical opportunity export), `evaluation/reports/powerbi_reconciliation.{json,csv,progress.jsonl}`, QA captures in `.cache/`.
+`python/pci_powerbi/{__init__,model,report,theme,build,export,desktop,reconcile}.py`, `python/pci_powerbi/as_bridge.ps1`, `tests/test_powerbi_m12.py`, `docs/POWER_BI_ARCHITECTURE.md`, `evaluation/reports/POWER_BI_RECONCILIATION.md` (value-free summary), generated `dashboards/PCI_Commercial_Intelligence.pbip` + `.SemanticModel/` + `.Report/` (text definitions, no data). Local only at M12 (git-ignored): `data/processed/powerbi/` (canonical opportunity export), `evaluation/reports/powerbi_reconciliation.{json,csv,progress.jsonl}`, QA captures in `.cache/`. Since P1 (2026-09-28) these IMS outputs are written under `PCI_IMS_DATA_DIR` (`powerbi/`, `reports/`, `cache/`), outside the repository; the synthetic export goes to `data/synthetic/powerbi/`.
 
 ## FILES MODIFIED (M12)
 `.gitignore` (`*.abf`, `**/.pbi/`, PBIP cache/local settings; reconciliation summary allowed), PROJECT_STATUS.md, IMPLEMENTATION_PLAN.md, README.md, ARCHITECTURE.md, CLAUDE.md. Engines (SQL, Python, opportunity, scenario), ToolRegistry, agents and app are **unchanged**.
@@ -117,6 +126,7 @@ M16 — Portfolio documentation: **COMPLETE** (2026-09-27). All milestones M1–
 M3–M7 engines and the M8 ToolRegistry are **unchanged**; all M8 tests pass unmodified.
 
 ## TESTS
+**P1 (2026-09-28): IMS mode 1004 passed, 0 failed, 0 errors, 0 skipped; public mode 594 passed, 410 skipped (`ims`), 0 failed**; per-file sequential runs. Clean public clone (committed snapshot + P1 changes, no private files): 594 passed, 410 skipped, 0 failed. Pre-change baseline: 886 passed.
 **M12 (2026-09-27): 809 passed, 0 failed, 0 errors, 0 skipped**: all 787 earlier tests plus 22 new `tests/test_powerbi_m12.py`, full mode (source re-read included).
 **M13 (2026-09-27): 848 passed, 0 failed, 0 errors, 0 skipped** (809 private + 20 synthetic + 19 local leakage), per-file sequential run, 424 s.
 
@@ -134,10 +144,10 @@ M3–M7 engines and the M8 ToolRegistry are **unchanged**; all M8 tests pass unm
 - Earlier baseline (M11): 787 passed.
 
 ## DATA STATUS
-M3 Parquet unchanged (80 MB). M12 adds derived, git-ignored `data/processed/powerbi/` (canonical opportunity export, ~170 MB, regenerable with `-m pci_powerbi.export`). Power BI's import cache is never saved to the repo.
+P1: the processed IMS layer and all IMS-derived outputs live in the external `PCI_IMS_DATA_DIR` (outside the repository); the repository holds only regenerable synthetic data. M3 Parquet unchanged (80 MB). The M12 Power BI export (canonical opportunity export, ~170 MB, regenerable with `-m pci_powerbi.export`) is written to the active dataset folder: `PCI_IMS_DATA_DIR/powerbi` in IMS mode (outside the repository), `data/synthetic/powerbi/` (git-ignored) in public mode. Power BI's import cache is never saved to the repo.
 
 ## LAST VERIFIED
-2026-09-27
+2026-09-28
 
 ## NEXT ACTION
-**M14 — Security + GitHub prep** (portability of the Power BI parameter defaults, public-safe audit, history cleanup plan; no push without approval).
+Owner: review and commit the P1 changes on `public-release`; enable the guard (`git config core.hooksPath .githooks`); decide on archiving the private `main` history outside this repository. No push without explicit approval.

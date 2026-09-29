@@ -13,4 +13,4 @@ paths = write_reports(report)
 print(f"{report['passed']}/{report['total_cases']} cases passed; failed: {report['failed_case_ids'] or 'none'}")
 for k, v in report["metrics"].items():
     print(f"  {k:<36} {_pct(v)}")
-print("reports:", ", ".join(p.name for p in paths.values()), "->", "evaluation/reports/")
+print("reports:", ", ".join(p.name for p in paths.values()), "-> the active dataset's reports folder")

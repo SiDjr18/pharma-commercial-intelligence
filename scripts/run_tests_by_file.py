@@ -6,7 +6,8 @@
 Nothing is skipped or modified: every collected test runs with its original assertions. Why per file: one long
 single-process run once stalled under laptop memory pressure while each file passes in seconds to minutes
 (PROJECT_STATUS.md). Per file it records wall time, exit code, JUnit counts and the 5 slowest tests.
-Outputs: .cache/regression/ (git-ignored). Run the private suite with PCI_DATASET unset.
+Outputs: .cache/regression/ (git-ignored) in synthetic mode; <PCI_IMS_DATA_DIR>/cache/regression in IMS mode
+(private-suite logs never enter the repository). Run the private suite with PCI_DATASET=ims + PCI_IMS_DATA_DIR.
 """
 import json
 import subprocess
@@ -16,7 +17,9 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / ".cache" / "regression"
+sys.path.insert(0, str(ROOT / "python"))
+from pci_data.schema import output_dir  # noqa: E402
+OUT = output_dir("cache", ROOT / ".cache") / "regression"
 
 
 def run_file(f: str) -> dict:

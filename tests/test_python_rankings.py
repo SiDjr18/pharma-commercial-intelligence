@@ -62,6 +62,7 @@ def test_ranks_are_permutations():
     assert sorted(x["rank_growth"] for x in r) == list(range(1, 51))
 
 
+@pytest.mark.ims
 def test_rank_parity_with_sql_on_real_ties(con, py_engine):
     """Products: thousands of exact zero-value ties and near-equal sums; ranks must match SQL exactly."""
     a = dt.date(2024, 5, 1)

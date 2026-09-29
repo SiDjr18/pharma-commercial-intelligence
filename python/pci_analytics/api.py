@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 
 from pci_data.db import connect
-from pci_data.schema import MANIFEST_PATH
+from pci_data.schema import load_active_manifest
 
 BASES = ("MONTH", "YTD", "MAT")
 MARKET_LEVELS = ("total", "supergroup", "therapy_group", "subgroup", "molecule")
@@ -58,9 +58,10 @@ class CommercialAnalytics:
         """con / manifest_path default to the active dataset (pci_data.schema, PCI_DATASET); pass both to
         address another processed layer explicitly (e.g. the M13 synthetic dataset in tests)."""
         self.con = con or connect()
-        m = json.loads(Path(manifest_path or MANIFEST_PATH).read_text(encoding="utf-8"))
+        m = (json.loads(Path(manifest_path).read_text(encoding="utf-8")) if manifest_path
+             else load_active_manifest())                   # active dataset: manifest checked against PCI_DATASET
         self._source = {"source_sha256": m["source"]["sha256"], "processed_built_at": m["build"]["built_at"]}
-        self.dataset = m.get("dataset", "private")          # M13: "synthetic" for the fictional public dataset
+        self.dataset = "synthetic" if m.get("dataset") == "synthetic" else "ims"   # label only; UI flags synthetic
 
     # ---------------- helpers ----------------
     def _rows(self, sql, params=()):

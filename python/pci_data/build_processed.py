@@ -3,10 +3,13 @@
 - Opens the source read-only (openpyxl read_only streaming). Never writes to it.
 - Streams in chunks; the long fact table is written incrementally.
 - Records independent source-side control totals (computed from raw cells) in
-  data/processed/_manifest.json for reconciliation tests.
+  <PCI_IMS_DATA_DIR>/_manifest.json for reconciliation tests.
 - Writes to *.tmp files and swaps them in only after a successful build.
+- P1 isolation: runs only with PCI_DATASET=ims; writes ONLY to the external PCI_IMS_DATA_DIR (checked to be
+  outside the repository) and refuses a source workbook located inside the repository.
 
-Run:  .venv\\Scripts\\python.exe -m pci_data.build_processed   (from python/)
+Run (from python/, with PCI_DATASET=ims, PCI_IMS_DATA_DIR=<PRIVATE_EXTERNAL_DIRECTORY> and
+PCI_SOURCE_PATH=<PRIVATE_WORKBOOK_PATH> set):  ..\\.venv\\Scripts\\python.exe -m pci_data.build_processed
 """
 from __future__ import annotations
 
@@ -23,8 +26,9 @@ import openpyxl
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from .schema import (DESCRIPTIVE, INT_DESCRIPTIVE, MANIFEST_PATH, PROCESSED_DIR, SOURCE_PATH,
-                     SOURCE_SHEET, classify, yyyymm_to_date)
+from .schema import (DESCRIPTIVE, INT_DESCRIPTIVE, MANIFEST_PATH, PROCESSED_DIR, PROJECT_ROOT, SOURCE_PATH,
+                     SOURCE_SHEET, DatasetConfigError, assert_outside_repo, classify, require_ims, yyyymm_to_date)
+from .dataset import is_within
 
 CHUNK_ROWS = 5_000
 COMPRESSION = "zstd"
@@ -60,7 +64,19 @@ def to_float(v, col):
     return float(v)
 
 
+def check_isolation() -> None:
+    """Fail closed before reading anything: IMS mode, external output folder, workbook outside the repository."""
+    require_ims("pci_data.build_processed")
+    assert_outside_repo(PROCESSED_DIR)
+    assert_outside_repo(MANIFEST_PATH)
+    if is_within(SOURCE_PATH.absolute(), PROJECT_ROOT) or (SOURCE_PATH.exists() and is_within(SOURCE_PATH.resolve(), PROJECT_ROOT)):
+        raise DatasetConfigError("PCI_SOURCE_PATH points inside the repository; the licensed workbook must stay outside it.")
+    if not SOURCE_PATH.is_file():
+        raise DatasetConfigError("PCI_SOURCE_PATH is not set or does not point to the private workbook.")
+
+
 def build() -> dict:
+    check_isolation()
     t0 = time.time()
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     src_stat = SOURCE_PATH.stat()

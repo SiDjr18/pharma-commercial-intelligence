@@ -11,7 +11,7 @@ Code: `python/pci_powerbi/` (generator, export, local Desktop bridge, reconcilia
 
 | Command (from `python/`) | Purpose |
 |---|---|
-| `..\.venv\Scripts\python.exe -m pci_powerbi.export` | Export canonical OPP-1.0.0 scores → `data/processed/powerbi/` (git-ignored). ~2.5 min, streamed |
+| `..\.venv\Scripts\python.exe -m pci_powerbi.export` | Export canonical OPP-1.0.0 scores → the active dataset's `powerbi/` folder: `data/synthetic/powerbi/` (public mode, git-ignored) or `PCI_IMS_DATA_DIR/powerbi/` (IMS mode, outside the repository). ~2.5 min, streamed |
 | `..\.venv\Scripts\python.exe -m pci_powerbi.build` | Regenerate the PBIP (text only; no data) |
 | open `dashboards\PCI_Commercial_Intelligence.pbip` in Power BI Desktop → **Refresh** | Import the data (~45 s) |
 | `..\.venv\Scripts\python.exe -m pci_powerbi.reconcile` | Reconcile the live model against the engines (Desktop must be open and refreshed) |
@@ -25,11 +25,11 @@ Code: `python/pci_powerbi/` (generator, export, local Desktop bridge, reconcilia
 | `Market` | `pack.parquet`, grouped by `subgroup` | therapy subgroup | 1,889 |
 | `Company` | `pack.parquet`, grouped by `company` | company | 1,077 |
 | `Period` | calculated from the fact's own min/max month | month | 36 |
-| `Opportunity Product` | `data/processed/powerbi/opportunity_product.parquet` | anchor × basis × product-in-subgroup | 1,961,940 |
-| `Opportunity Market` | `data/processed/powerbi/opportunity_market.parquet` | anchor × basis × subgroup | 56,670 |
+| `Opportunity Product` | `<PowerBIFolder>/opportunity_product.parquet` | anchor × basis × product-in-subgroup | 1,961,940 |
+| `Opportunity Market` | `<PowerBIFolder>/opportunity_market.parquet` | anchor × basis × subgroup | 56,670 |
 | `Anchor`, `Basis`, `Scenario Type`, `Price Change`, `Volume Change`, `Market Growth Assumption`, `Target Share` | calculated (DAX) | selection/parameter tables, disconnected | — |
 
-Not used: the raw IMS workbook, `pack_snapshot` (reconciliation only, as in the app), `pack_price_month` (price is derived as in M7), and any external dataset, API or cloud service. The two Power Query parameters `ProcessedFolder` and `PowerBIFolder` point at local folders. Import mode is used because Power BI cannot query Parquet in DirectQuery. Its compressed cache (`.pbi/cache.abf`) is the only copy, and it is git-ignored.
+Not used: the raw IMS workbook, `pack_snapshot` (reconciliation only, as in the app), `pack_price_month` (price is derived as in M7), and any external dataset, API or cloud service. The two Power Query parameters `ProcessedFolder` and `PowerBIFolder` point at local folders. `PowerBIFolder` is `data/synthetic/powerbi/` in public mode and `PCI_IMS_DATA_DIR/powerbi/` in IMS mode. Before P1 isolation (2026-09-28), the IMS export was written to `data/processed/powerbi/` (historical location, still git-ignored). Import mode is used because Power BI cannot query Parquet in DirectQuery. Its compressed cache (`.pbi/cache.abf`) is the only copy, and it is git-ignored.
 
 ## 2. Model (star schema)
 ```
@@ -186,7 +186,7 @@ The remaining differences are floating-point summation order only (≤ 3e-11 rel
 
 ## 11. Privacy and Git
 - The PBIP definition is text without data. Tests fail if a `.pbix`, `.pbit`, `.abf`, `.parquet`, `.csv` or `.xlsx` appears under `dashboards/`.
-- Git-ignored: `*.pbix`, `*.pbit`, `*.abf`, `**/.pbi/` (Desktop cache and local settings), `data/processed/powerbi/`, `evaluation/reports/powerbi_reconciliation*`.
+- Git-ignored: `*.pbix`, `*.pbit`, `*.abf`, `**/.pbi/` (Desktop cache and local settings), `data/synthetic/powerbi/` (public export), `evaluation/reports/powerbi_reconciliation*`, and the historical `data/processed/powerbi/`. The IMS export is written to `PCI_IMS_DATA_DIR/powerbi/`, outside the repository.
 - Slicer defaults in the definition contain only "May 2024" and "MAT" (tested).
 - No external service, API, sign-in or publish step is used. Power BI Desktop settings (including usage-data telemetry) were **not changed** by the build. Users who want no telemetry should turn off *Options → Global → Usage data* themselves.
 - Screenshots of this report show licensed IMS aggregates and must not be published. Public screenshots come from the M13 synthetic dataset. QA captures live only in the git-ignored `.cache/`.

@@ -11,6 +11,13 @@ Routes (nothing else is served):
   GET  /api/tools             -> machine-readable tool contracts
   POST /api/tools/<tool name> -> JSON params -> structured tool result / error
 Binds to 127.0.0.1 only; no outbound network calls; no SQL/Python/shell/file access for clients.
+
+Request hardening (P1, 2026-09-28):
+  * Host header must name this server on a loopback name (127.0.0.1 / localhost / [::1] with the bound port);
+    anything else gets 421 (blocks DNS-rebinding pages from reading the API);
+  * POST requires Content-Type application/json (no CORS-free "simple" cross-site posts) and, when the browser
+    sends Origin or Sec-Fetch-Site, a same-origin value; otherwise 403 (blocks cross-site request forgery);
+  * no CORS headers are ever sent (a cross-site page can never read a response).
 """
 from __future__ import annotations
 
@@ -21,6 +28,7 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from .tools import TOOLS, ToolRegistry, _scrub_obj, contracts
 
@@ -39,6 +47,19 @@ SECURITY_HEADERS = {
     "Cache-Control": "no-store",
 }
 log = logging.getLogger("pci_app")
+LOCAL_HOSTS = ("127.0.0.1", "localhost", "::1")
+LOOPBACK_NAMES = ("127.0.0.1", "localhost", "[::1]")
+
+
+def allowed_hosts(port: int) -> set[str]:
+    """Exact Host header values accepted for a server bound to `port` (case-insensitive)."""
+    return {f"{h}:{port}" for h in LOOPBACK_NAMES} | ({*LOOPBACK_NAMES} if port == 80 else set())
+
+
+def origin_allowed(origin: str, port: int) -> bool:
+    """Same-origin check: scheme http and a loopback host:port of this server (browsers send 'null' for opaque)."""
+    parts = urlsplit(origin.strip().lower())
+    return parts.scheme == "http" and not parts.path.strip("/") and parts.netloc in allowed_hosts(port)
 
 
 def make_handler(registry: ToolRegistry, lock: threading.Lock, orchestrator=None, provider_notice=None):
@@ -48,6 +69,43 @@ def make_handler(registry: ToolRegistry, lock: threading.Lock, orchestrator=None
 
         def log_message(self, fmt, *args):  # quiet, no request bodies logged
             log.debug("%s %s", self.command, self.path.split("?")[0])
+
+        def _deny(self, status: int, code: str, message: str):
+            # drain a bounded, unread request body first: on Windows closing a socket with unread data resets the
+            # connection before the client can read the refusal (same reason as the 413 path)
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                length = 0
+            if length > 0:
+                self.rfile.read(min(length, DRAIN_LIMIT))
+            self.close_connection = True
+            self._json(status, {"ok": False, "error": {"code": code, "category": "Request refused",
+                                                       "message": message}})
+
+        def _host_ok(self) -> bool:
+            """DNS-rebinding guard: only this server's loopback host:port is accepted."""
+            host = (self.headers.get("Host") or "").strip().lower()
+            if host in allowed_hosts(self.server.server_address[1]):
+                return True
+            self._deny(421, "INVALID_HOST", "Requests must address this local server as 127.0.0.1 or localhost.")
+            return False
+
+        def _post_ok(self) -> bool:
+            """CSRF guard for state-changing requests: JSON body, same-origin or non-browser client only."""
+            ctype = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+            if ctype != "application/json":
+                self._deny(415, "UNSUPPORTED_MEDIA_TYPE", "POST bodies must be sent as application/json.")
+                return False
+            origin = self.headers.get("Origin")
+            if origin is not None and not origin_allowed(origin, self.server.server_address[1]):
+                self._deny(403, "INVALID_ORIGIN", "Cross-origin requests are not accepted.")
+                return False
+            site = (self.headers.get("Sec-Fetch-Site") or "").strip().lower()
+            if site and site not in ("same-origin", "none"):
+                self._deny(403, "INVALID_ORIGIN", "Cross-site requests are not accepted.")
+                return False
+            return True
 
         def _send(self, status: int, body: bytes, ctype: str):
             self.send_response(status)
@@ -67,6 +125,8 @@ def make_handler(registry: ToolRegistry, lock: threading.Lock, orchestrator=None
                                                     "message": "No such route."}})
 
         def do_GET(self):
+            if not self._host_ok():
+                return None
             path = self.path.split("?")[0]
             if path in STATIC:
                 name, ctype = STATIC[path]
@@ -101,6 +161,8 @@ def make_handler(registry: ToolRegistry, lock: threading.Lock, orchestrator=None
                 return None, True
 
         def do_POST(self):
+            if not self._host_ok() or not self._post_ok():
+                return None
             path = self.path.split("?")[0]
             if path == "/api/agent" and orchestrator is not None:          # M9 governed agent workflow
                 body, sent = self._read_json()
@@ -124,6 +186,8 @@ def make_handler(registry: ToolRegistry, lock: threading.Lock, orchestrator=None
             self._json(status, out)
 
         def do_PUT(self):
+            if not self._host_ok():
+                return None
             self._not_found()
 
         do_DELETE = do_PATCH = do_PUT
@@ -132,14 +196,20 @@ def make_handler(registry: ToolRegistry, lock: threading.Lock, orchestrator=None
 
 
 def create_server(api=None, host: str = "127.0.0.1", port: int = 8765) -> ThreadingHTTPServer:
-    if host not in ("127.0.0.1", "localhost", "::1"):
-        raise ValueError("the application binds to the local machine only")
+    """Loopback only: 0.0.0.0, :: or any other interface is refused before anything is bound."""
+    if host not in LOCAL_HOSTS:
+        raise ValueError("the application binds to the local machine only (127.0.0.1, localhost or ::1)")
     if api is None:
         from pci_analytics import CommercialAnalytics
         api = CommercialAnalytics()
     registry = ToolRegistry(api)
     orchestrator, notice = _make_orchestrator(registry)
-    return ThreadingHTTPServer((host, port), make_handler(registry, threading.Lock(), orchestrator, notice))
+    srv = ThreadingHTTPServer(("127.0.0.1" if host == "localhost" else host, port),
+                              make_handler(registry, threading.Lock(), orchestrator, notice))
+    if srv.server_address[0] not in ("127.0.0.1", "::1"):        # defence in depth: verify the bound interface
+        srv.server_close()
+        raise ValueError("the application must be bound to a loopback interface")
+    return srv
 
 
 def _supported_forms(orchestrator) -> list:

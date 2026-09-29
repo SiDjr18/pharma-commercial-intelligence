@@ -231,6 +231,7 @@ def real(py_engine):
             "market": O.score_all(py_engine, "market", A, "MAT")["rows"]}
 
 
+@pytest.mark.ims
 @pytest.mark.parametrize("level,n", [("product", 65_398), ("market", 1_889)])
 def test_real_bounds_components_statuses(real, level, n):
     rows = real[level]
@@ -327,6 +328,7 @@ def api(py_engine):
     return PyCommercialAnalytics(py_engine)
 
 
+@pytest.mark.ims
 def test_api_scores_envelope(api):
     env = api.get_opportunity_scores(top_n=10)
     assert env["row_count"] == 10 and env["methodology"]["version"] == PINNED_VERSION
@@ -338,6 +340,7 @@ def test_api_scores_envelope(api):
     json.dumps(env)
 
 
+@pytest.mark.ims
 def test_api_filters_do_not_change_scores(api):
     full = {r["entity_key"]: r["score"] for r in api.get_opportunity_scores(top_n=None)["rows"]}
     sub = api.get_opportunity_scores(market_level="supergroup", market_key="CARDIAC", top_n=None)
@@ -351,6 +354,7 @@ def test_api_filters_do_not_change_scores(api):
     assert mk["rows"] and all(r["supergroup"] == "CARDIAC" for r in mk["rows"])
 
 
+@pytest.mark.ims
 def test_api_include_insufficient_and_detail(api):
     env = api.get_opportunity_scores(include_insufficient=True, top_n=None)
     assert env["total_rows"] == 65_398

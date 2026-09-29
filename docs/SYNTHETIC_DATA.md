@@ -8,19 +8,19 @@ A **fictional, structure-only** dataset with the exact schema and grain of the p
 ```
 cd python
 ..\.venv\Scripts\python.exe -m pci_synthetic.generate            # -> data/synthetic/ (~1 s, ~6 MB)
-set PCI_DATASET=synthetic                                          # PowerShell: $env:PCI_DATASET="synthetic"
+rem PCI_DATASET unset = synthetic (the default); `set PCI_DATASET=synthetic` is equivalent
 cd .. && .venv\Scripts\python.exe run_app.py --port 8766           # app + agents on synthetic data
 cd python && ..\.venv\Scripts\python.exe -m pci_powerbi.export     # opportunity export -> data/synthetic/powerbi/
 ..\.venv\Scripts\python.exe -m pci_powerbi.build                   # PBIP -> dashboards/_synthetic/ (git-ignored)
 ```
 Then open `dashboards\_synthetic\PCI_Commercial_Intelligence.pbip` in Power BI Desktop and click **Refresh**.
 
-`PCI_DATASET` switches every consumer, and there are no arbitrary paths:
-- `private` (default, or unset) reads `data/processed`.
-- `synthetic` reads `data/synthetic`.
-- Any other value is an error.
+`PCI_DATASET` switches every consumer, and there are no arbitrary paths (P1 isolation, `docs/DATA_ISOLATION.md`):
+- unset, empty or `synthetic` (**default**) reads `data/synthetic`.
+- `ims` reads the licensed layer in `PCI_IMS_DATA_DIR`, an explicit directory that must be outside the repository.
+- Any other value (including the retired `private`) is an error; there is no fallback between the two.
 
-The private test suite must run with the variable unset.
+The private test suite runs with `PCI_DATASET=ims` + `PCI_IMS_DATA_DIR`; tests marked `ims` are skipped otherwise.
 
 ## Contract
 | Item | Rule |

@@ -11,8 +11,9 @@ it row by row and field by field with the reference output:
   text/int: exact (status, evidence, quadrant, ranks)
 Rows: the set of entity keys must be identical.
 
-Outputs (git-ignored, contain real values): evaluation/reports/powerbi_reconciliation.{json,csv}
-Committed summary (no values):            evaluation/reports/POWER_BI_RECONCILIATION.md
+Outputs (contain values): IMS mode -> <PCI_IMS_DATA_DIR>/reports/ (outside the repository; the summary .md too);
+synthetic mode -> evaluation/reports/powerbi_reconciliation_synthetic.{json,csv} (git-ignored) + the tracked
+value-free POWER_BI_RECONCILIATION_SYNTHETIC.md. The tracked POWER_BI_RECONCILIATION.md is the historical M12 summary.
 
 Run (Power BI Desktop open on the project, refreshed):
     cd python && ..\\.venv\\Scripts\\python.exe -m pci_powerbi.reconcile
@@ -37,15 +38,17 @@ from pci_analytics.scenario import run_scenario
 from . import desktop
 
 ROOT = Path(__file__).resolve().parents[2]
-REPORTS = ROOT / "evaluation" / "reports"
+from pci_data.schema import output_dir  # noqa: E402
+# synthetic: evaluation/reports (git-ignored details + tracked value-free summary); IMS: <PCI_IMS_DATA_DIR>/reports
+REPORTS = output_dir("reports", ROOT / "evaluation" / "reports")
 REL_TOL = 1e-9
 PBIP_TITLE = "PCI_Commercial_Intelligence"
 
 
 def _suffix() -> str:
-    """'' for the private dataset (M12 file names unchanged); '_synthetic' for PCI_DATASET=synthetic (M13)."""
+    """'' for the IMS dataset (M12 file names, written outside the repo); '_synthetic' for the synthetic dataset."""
     from pci_data.schema import DATASET
-    return "" if DATASET == "private" else f"_{DATASET}"
+    return "" if DATASET == "ims" else f"_{DATASET}"
 
 CORE = [("value_cur", "Value"), ("value_prior", "Value Prior"), ("value_abs_chg", "Value Change"),
         ("value_growth_pct", "Value Growth %"), ("value_growth_status", "Growth Status"),
@@ -631,7 +634,7 @@ def write_reports(rec: Reconciler, smoke: list[dict], meta: dict) -> dict:
          f"Tolerance: |Power BI − reference| ≤ {REL_TOL:g} × max(1, |reference|) for numbers; exact for text, "
          "status and ranks; BLANK must match NULL exactly (no silent zeros). Entity key sets must be identical.", "",
          "This file intentionally contains no business values. Detailed results with values stay local in "
-         f"`evaluation/reports/powerbi_reconciliation{_suffix()}.{{json,csv}}` (git-ignored).", "",
+         f"`powerbi_reconciliation{_suffix()}.{{json,csv}}` next to this file (not tracked).", "",
          "## Summary", "",
          "| Cases | Pass | Fail | Values compared | NULL/BLANK checks | Max relative difference | Visual queries | Visual query failures |",
          "|---|---|---|---|---|---|---|---|",

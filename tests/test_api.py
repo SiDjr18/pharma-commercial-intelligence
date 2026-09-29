@@ -13,6 +13,7 @@ def api(con):
     return CommercialAnalytics(con)
 
 
+@pytest.mark.ims
 def test_envelope_and_json(api):
     out = api.get_market_performance("supergroup", "2024-05-01", "MAT", top_n=5)
     assert set(out) == ENVELOPE
@@ -23,6 +24,7 @@ def test_envelope_and_json(api):
     json.dumps(out)
 
 
+@pytest.mark.ims
 def test_each_function_runs(api):
     sg = api.get_market_performance("subgroup", top_n=1)["rows"][0]["entity_key"]
     pc = api.get_brand_performance(top_n=1)["rows"][0]["entity_key"]

@@ -49,11 +49,13 @@ def gemini(monkeypatch):
 
 
 def test_default_is_no_model_and_private_data_rejects_gemini(monkeypatch):
+    import pci_data.schema as schema
     monkeypatch.delenv("LLM_PROVIDER", raising=False)
     assert get_provider().name == "NONE" and get_provider().metadata()["network"] is False
     monkeypatch.setenv("GEMINI_API_KEY", "test-key-not-real")
+    monkeypatch.setattr(schema, "DATASET", "ims")                   # mode-independent: the licensed dataset is active
     with pytest.raises(PR.ProviderNotConfigured, match="PCI_DATASET=synthetic"):
-        get_provider("GEMINI")                                      # the licensed dataset is active
+        get_provider("GEMINI")
 
 
 def test_missing_key_rejected(monkeypatch):

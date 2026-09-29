@@ -225,6 +225,7 @@ def test_fault_injection_detected(syn, monkeypatch, fault):
 
 
 # ======================================================================= real data
+@pytest.mark.ims
 def test_derived_price_reproduces_source_pr(con):
     """Pack level, all 6 months with source PR (Dec 2023 - May 2024), all therapy areas, both years."""
     rows = con.execute("""SELECT pr.period, p.supergroup, f.value_cr, f.units_k, pr.price_rs
@@ -298,7 +299,7 @@ def test_real_scenarios_arithmetic(api, py_engine):
     (lambda a: a.run_scenario("MARKET_SHARE", "product", "1", {"target_share_pct": 101}, market_level="total"), "invalid_assumption"),
     (lambda a: a.run_scenario("MARKET_SHARE", "company", "NO SUCH", {"target_share_pct": 5}, market_level="total"), "not_found"),
     (lambda a: a.run_scenario("PRICE_CHANGE", "product", "1", {"price_change_pct": 1}, market_level="subgroup", market_key="NO SUCH"), "not_found"),
-    (lambda a: a.get_scenario_baseline("product", "1", market_level="channel", market_key="x"), "unsupported"),
+    pytest.param(*(lambda a: a.get_scenario_baseline("product", "1", market_level="channel", market_key="x"), "unsupported"), marks=pytest.mark.ims),
 ])
 def test_errors(api, call, code):
     with pytest.raises(AnalyticsError) as e:
@@ -326,6 +327,7 @@ def test_real_zero_unit_baseline_is_insufficient(api, py_engine):
     assert e.value.code == "insufficient_baseline"
 
 
+@pytest.mark.ims
 def test_sql_api_delegates(con, api):
     from pci_analytics import CommercialAnalytics
     s = CommercialAnalytics(con)

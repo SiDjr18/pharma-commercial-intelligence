@@ -12,6 +12,10 @@ import pytest
 from conftest import skip_source
 from pci_data.schema import SOURCE_PATH, SOURCE_SHEET
 
+# Private IMS suite (P1): these tests assert facts of the licensed dataset, so they run only with
+# PCI_DATASET=ims + PCI_IMS_DATA_DIR and are skipped in the default synthetic mode (tests/conftest.py).
+pytestmark = pytest.mark.ims
+
 REL = 1e-9
 
 

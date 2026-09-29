@@ -7,7 +7,7 @@
 python/pci_data/build_processed.py   ── column classification (python/pci_data/schema.py)
         │  sha256 of source before and after (abort if changed)
         ▼
-data/processed/  (git-ignored)
+<PCI_IMS_DATA_DIR>/  (outside the repository; P1 isolation, docs/DATA_ISOLATION.md)
   pack.parquet               105,317 rows    5.8 MB
   fact_pack_month.parquet  3,791,412 rows   42.6 MB
   pack_snapshot.parquet      315,951 rows   30.2 MB
@@ -20,8 +20,9 @@ sql/views.sql (+ M4: periods, entities, metrics, domains) → pci_data.db.connec
 
 ## Run
 ```
+rem IMS mode only: PCI_DATASET=ims, PCI_IMS_DATA_DIR=<PRIVATE_EXTERNAL_DIRECTORY>, PCI_SOURCE_PATH=<PRIVATE_WORKBOOK_PATH>
 cd <PROJECT_ROOT>\python
-..\.venv\Scripts\python.exe -m pci_data.build_processed      # ~115 s
+..\.venv\Scripts\python.exe -m pci_data.build_processed      # ~115 s; refuses public mode and repository paths
 cd ..
 .venv\Scripts\python.exe -m pytest                           # 133 tests, ~70 s incl. source re-read
 set PCI_SKIP_SOURCE=1 && .venv\Scripts\python.exe -m pytest  # fast mode, ~7 s

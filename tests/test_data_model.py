@@ -3,6 +3,10 @@ import pytest
 
 from pci_data.schema import DESCRIPTIVE, PROCESSED_DIR
 
+# Private IMS suite (P1): these tests assert facts of the licensed dataset, so they run only with
+# PCI_DATASET=ims + PCI_IMS_DATA_DIR and are skipped in the default synthetic mode (tests/conftest.py).
+pytestmark = pytest.mark.ims
+
 
 def one(con, sql):
     return con.execute(sql).fetchone()[0]

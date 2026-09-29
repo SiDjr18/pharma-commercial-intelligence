@@ -67,9 +67,13 @@ def test_qa_refusal_and_routing():
     assert not G.qa(case, out2, [])["passed"]
 
 
-def test_runner_refuses_private_data():
+def test_runner_refuses_private_data(tmp_path):
+    """IMS mode (explicit, with a valid external data directory) must be refused before anything is read or sent."""
+    ims = tmp_path / "external_ims"
+    ims.mkdir()
     r = subprocess.run([sys.executable, "-m", "pci_llm_eval.gemini_eval", "--dry-run"], cwd=ROOT / "python",
-                       env=_env(), capture_output=True, text=True, timeout=300)
+                       env=_env(PCI_DATASET="ims", PCI_IMS_DATA_DIR=str(ims)), capture_output=True, text=True,
+                       timeout=300)
     assert r.returncode != 0 and "REFUSED" in (r.stderr + r.stdout)
 
 

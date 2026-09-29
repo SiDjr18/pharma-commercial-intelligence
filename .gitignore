@@ -44,6 +44,59 @@ data/synthetic/*
 # M13: only the deterministic fingerprint is tracked; the data is regenerated (python -m pci_synthetic.generate)
 !data/synthetic/SYNTHETIC_FINGERPRINT.json
 
+# ---- P1 isolation (2026-09-28): the licensed IMS data lives OUTSIDE the repository (PCI_IMS_DATA_DIR).
+# Everything below is belt and braces: formats and folders that must never be committed. The publication guard
+# (.githooks/, scripts/publication_guard.py) blocks them even when force-added.
+*.tsv
+*.jsonl
+*.ndjson
+*.ipynb
+*.pdf
+*.rar
+*.tar
+*.gz
+*.tgz
+*.bz2
+*.xz
+*.bak
+*.ods
+*.hdf5
+*.npy
+*.npz
+*.sav
+*.dta
+*.sas7bdat
+# images: data screenshots are private by default; track a reviewed public asset only with an explicit !rule
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.webp
+*.tif
+*.tiff
+# credentials (extension-scoped so source files are never hidden)
+*secret*.json
+*secrets*.yml
+*secrets*.yaml
+*api_key*.txt
+*api_key*.json
+*apikey*.txt
+*_key.txt
+# data/: only the listed sub-folders exist in the repo; any other data folder (e.g. data/ims/) is ignored whole
+data/*
+!data/raw/
+!data/processed/
+!data/profile/
+!data/synthetic/
+# private folders that must never sit in (or be linked into) the repository
+PRIVATE_IMS*/
+*IMS_DATA*/
+# evaluation/: only reviewed, value-free files are tracked (see the evaluation/reports/ rules further below)
+evaluation/*
+!evaluation/.gitkeep
+!evaluation/reports/
+
 # ---- Power BI (may embed data) ----
 *.pbix
 *.pbit

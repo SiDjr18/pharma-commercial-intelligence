@@ -101,6 +101,7 @@ def _ok(r, tools, agents):
     assert not has_path(r)
 
 
+@pytest.mark.ims
 def test_market_trend_agent(orch):
     _ok(run(orch, "market performance by therapy area MAT top 3"), ["get_market_performance"], ["MarketTrendAgent"])
     r = orch.handle({"intent": "MARKET_TREND", "params": {"level": "supergroup", "key": "CARDIAC"}})
@@ -108,6 +109,7 @@ def test_market_trend_agent(orch):
     assert S.MARKET_DEFINITION_NOTE in r["limitations"]
 
 
+@pytest.mark.ims
 def test_brand_product_agent(orch, ph):
     r = run(orch, f"product {ph['@top_product']} performance")
     _ok(r, ["get_brand_share", "get_brand_growth"], ["BrandProductAgent"])
@@ -115,6 +117,7 @@ def test_brand_product_agent(orch, ph):
     _ok(run(orch, "top 3 products YTD"), ["get_brand_performance"], ["BrandProductAgent"])
 
 
+@pytest.mark.ims
 def test_company_segment_agent(orch):
     _ok(run(orch, "company performance top 3"), ["get_company_performance"], ["CompanySegmentAgent"])
     _ok(run(orch, 'therapy performance by subgroup within "CARDIAC" top 3'), ["get_therapy_performance"],
@@ -140,6 +143,7 @@ def test_opportunity_detail_components(orch, reg):
     assert sum(f["kind"] == "component" for f in r["findings"]) == 3
 
 
+@pytest.mark.ims
 def test_scenario_agent_not_a_forecast(orch):
     r = run(orch, 'what if price +5% and volume -2% for therapy area "CARDIAC"')
     _ok(r, ["run_scenario"], ["ScenarioAgent"])
@@ -181,7 +185,7 @@ def test_qa_blocks_invented_numbers_and_forecast_language(reg):
 
 
 @pytest.mark.parametrize("text,check", [
-    ('what if price +5% for therapy area "CARDIAC"', "scenario_not_forecast"),
+    pytest.param(*('what if price +5% for therapy area "CARDIAC"', "scenario_not_forecast"), marks=pytest.mark.ims),
     ("product opportunities top 3", "methodology_preserved"),
     ("market performance top 3", "market_definition"),
 ])
@@ -276,6 +280,7 @@ def test_unsafe_requests_refused_without_tool_calls(orch, text):
     assert r["status"] == S.UNSAFE_REQUEST and r["tool_calls"] == [] and r["qa"]["passed"]
 
 
+@pytest.mark.ims
 def test_structured_injection_is_data_not_code(orch, con):
     r = orch.handle({"intent": "MARKET_TREND", "params": {"level": "subgroup", "key": "'; DROP TABLE pack; --"}})
     assert r["status"] == "ENTITY_NOT_FOUND"
@@ -319,6 +324,7 @@ def test_unsupported_structured_param_passes_through(orch):
     assert r["status"] == "UNSUPPORTED_GEOGRAPHY" and r["findings"] == []
 
 
+@pytest.mark.ims
 def test_insufficient_evidence(orch, ph):
     r = run(orch, "product opportunities for 2023-04 MAT")
     assert r["status"] == "INSUFFICIENT_EVIDENCE" and r["qa"]["passed"]
@@ -337,6 +343,7 @@ def test_missing_comparison_period_not_filled(orch):
     assert any("predates" in x for x in r["limitations"])
 
 
+@pytest.mark.ims
 def test_brand_disambiguation(orch, ph):
     r = run(orch, f'brand performance for "{ph["@shared_brand"]}"')
     assert r["status"] == S.AMBIGUOUS_ENTITY and r["qa"]["passed"]
@@ -346,6 +353,7 @@ def test_brand_disambiguation(orch, ph):
     assert all(o["prod_code"] in r["final_response"] for o in opts)
 
 
+@pytest.mark.ims
 def test_disambiguation_guess_is_caught_by_qa(orch, ph, monkeypatch):
     def guessing_resolve(self, ctx, name):      # a faulty agent that silently picks the first candidate
         out = self.tool(ctx, "find_products", {"name_contains": name, "limit": 500})
@@ -355,6 +363,7 @@ def test_disambiguation_guess_is_caught_by_qa(orch, ph, monkeypatch):
     assert r["status"] == S.QA_FAILED and "disambiguation" in {f["check"] for f in r["qa"]["failures"]}
 
 
+@pytest.mark.ims
 def test_unique_brand_resolves(orch, ph):
     r = run(orch, f'brand performance for "{ph["@unique_brand"]}"')
     assert r["status"] == "OK" and [c["tool"] for c in r["tool_calls"]] == ["find_products", "get_brand_share",
@@ -362,7 +371,10 @@ def test_unique_brand_resolves(orch, ph):
 
 
 # ================================================================== U-Z. providers, demo mode, network, keys, memory
-def test_provider_abstraction():
+def test_provider_abstraction(monkeypatch):
+    # unconfigured-provider behaviour: independent of a developer's own GEMINI_API_KEY / LLM_PROVIDER
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
     with pytest.raises(TypeError):
         PR.LLMProvider()                                          # abstract contract
     for name in ("GEMINI", "OPENAI", "CLAUDE", "ANTHROPIC"):
@@ -426,6 +438,7 @@ def test_no_request_memory_retained(reg):
 
 
 # ================================================================== evaluation suite (>= 20 cases)
+@pytest.mark.ims
 def test_evaluation_suite(orch, reg):
     assert len(E.CASES) >= 20
     cats = {c[1] for c in E.CASES}
@@ -442,6 +455,7 @@ def test_evaluation_suite(orch, reg):
 # ================================================================== HTTP integration (M8 server)
 def test_http_agent_endpoints(reg, monkeypatch):
     from pci_app.server import create_server
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)           # no key: GEMINI is unavailable in every environment
     monkeypatch.setenv("LLM_PROVIDER", "GEMINI")                 # unavailable -> safe fallback to NONE
     srv = create_server(reg.api, port=0)
     th = threading.Thread(target=srv.serve_forever, daemon=True)

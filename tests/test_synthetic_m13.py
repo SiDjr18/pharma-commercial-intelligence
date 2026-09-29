@@ -85,11 +85,11 @@ def test_schema_parity_with_processed_layer(syn):
 
 
 def test_processed_schema_snapshot_matches_private_layer():
-    """Keeps the committed contract in sync with the private layer (skipped where the private data is absent)."""
+    """Keeps the committed contract in sync with the private layer (IMS mode only; skipped elsewhere)."""
     from pci_data.schema import DATASETS
-    p = DATASETS["private"]
-    if not (p / "pack.parquet").exists():
-        pytest.skip("private processed layer not present")
+    p = DATASETS.get("ims")
+    if p is None or not (p / "pack.parquet").exists():
+        pytest.skip("private IMS layer not configured (PCI_DATASET=ims + PCI_IMS_DATA_DIR)")
     snap = json.loads((ROOT / "python" / "pci_synthetic" / "processed_schema.json").read_text(encoding="utf-8"))["tables"]
     for t, cols in snap.items():
         assert [[f.name, str(f.type)] for f in pq.read_schema(p / f"{t}.parquet")] == cols, t
@@ -247,6 +247,7 @@ def test_scenarios_run_and_reject(api, eng):
 def _schema_in_subprocess(value):
     env = {**os.environ}
     env.pop("PCI_DATASET", None)
+    env.pop("PCI_IMS_DATA_DIR", None)
     if value is not None:
         env["PCI_DATASET"] = value
     return subprocess.run([PY, "-c", "import sys; sys.path.insert(0, 'python'); from pci_data import schema as s; "
@@ -255,11 +256,15 @@ def _schema_in_subprocess(value):
 
 
 def test_dataset_switch():
-    assert _schema_in_subprocess(None).stdout.split() == ["private", "processed", "processed"]
-    assert _schema_in_subprocess("private").stdout.split() == ["private", "processed", "processed"]
+    """P1: synthetic is the default; the licensed data needs PCI_DATASET=ims plus an external PCI_IMS_DATA_DIR."""
+    assert _schema_in_subprocess(None).stdout.split() == ["synthetic", "synthetic", "synthetic"]
+    assert _schema_in_subprocess("").stdout.split() == ["synthetic", "synthetic", "synthetic"]
     assert _schema_in_subprocess("Synthetic").stdout.split() == ["synthetic", "synthetic", "synthetic"]
-    bad = _schema_in_subprocess("../../elsewhere")
-    assert bad.returncode != 0 and "PCI_DATASET must be one of" in bad.stderr
+    for value in ("../../elsewhere", "private", "processed", "IMS2"):
+        bad = _schema_in_subprocess(value)
+        assert bad.returncode != 0 and "PCI_DATASET must be one of" in bad.stderr, value
+    ims = _schema_in_subprocess("ims")                      # no PCI_IMS_DATA_DIR: fail closed, no fallback
+    assert ims.returncode != 0 and "requires PCI_IMS_DATA_DIR" in ims.stderr and not ims.stdout
 
 
 def test_powerbi_synthetic_build_never_overwrites_private_project(tmp_path):

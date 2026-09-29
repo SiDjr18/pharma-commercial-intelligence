@@ -8,7 +8,7 @@ Application/agent access goes through the M8 tool boundary (`docs/TOOL_API.md`):
 
 ```python
 from pci_analytics import CommercialAnalytics, AnalyticsError
-api = CommercialAnalytics()            # opens DuckDB views over data/processed (read-only)
+api = CommercialAnalytics()            # opens DuckDB views over the active dataset (synthetic default, or PCI_IMS_DATA_DIR)
 api.get_market_performance("subgroup", "2024-05-01", "MAT", top_n=10)
 ```
 
@@ -21,7 +21,7 @@ api.get_market_performance("subgroup", "2024-05-01", "MAT", top_n=10)
 | Market levels | `total`, `supergroup`, `therapy_group`, `subgroup` (primary), `molecule` — see docs/MARKET_DEFINITION.md |
 | Segments | `acute_chronic`, `indian_mnc`, `plain_combination`, `molecule_count`, `dosage_form`, `nfc1` — see docs/SEGMENT_DEFINITIONS.md |
 | Keys | `entity_key` is the analytical key (product = `prod_code` as string); `entity_label` is display only |
-| `top_n` | int 1..5000 or `None` (all). Ordering is always `rank_value` |
+| `top_n` | int 1..5000 or `None` (all) for in-process Python callers. **Tool endpoints (HTTP / agents, `pci_app.tools`) never return all rows:** `null`/absent = safe maximum 2,000 (500 for product lists); larger values are rejected. Ordering is always `rank_value` |
 | Numbers | unrounded floats; value in ₹ crore, units '000 packs (inferred), qty '000 counting units (inferred) |
 
 ### Response envelope (every function)

@@ -414,6 +414,10 @@ def write(out_dir: Path = OUT, seed: int = S.SEED) -> dict:
     tables = generate(seed)
     fp = canonical_hash(tables)
     out_dir = Path(out_dir)
+    # never overwrite another processed layer (e.g. a --out pointing at the private IMS folder). Existence checks
+    # only: a synthetic folder always carries the fingerprint file next to its manifest; nothing is read.
+    if (out_dir / "_manifest.json").exists() and not (out_dir / FINGERPRINT_FILE).exists():
+        raise SystemExit("refusing to write synthetic data into a folder that holds another processed layer")
     out_dir.mkdir(parents=True, exist_ok=True)
     for name, t in tables.items():
         pq.write_table(t, out_dir / f"{name}.parquet", compression="zstd")
